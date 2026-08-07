@@ -1,0 +1,745 @@
+<title>Ko: Pulling the Shared Badge Secret Out of the Encrypted Filesystem</title>
+<style>
+:root {
+  --ground:#F1F3F2; --surface:#FFFFFF; --sunk:#E7EBE9;
+  --ink:#14181A; --muted:#5A6468; --hair:#D3DAD7;
+  --accent:#0C7A63; --accent-q:#E4F1ED;
+  --warn:#9A5510; --warn-q:#F8EEE2; --bad:#A32B2B; --lit:#14181A;
+  --mono: ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans: ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --step: clamp(1rem,0.6rem + 1.1vw,1.0625rem);
+}
+@media (prefers-color-scheme: dark){:root{
+  --ground:#0D1011; --surface:#15191B; --sunk:#1B2022;
+  --ink:#E4E9E7; --muted:#939E9F; --hair:#2A3134;
+  --accent:#34C6A3; --accent-q:#122924;
+  --warn:#D79A55; --warn-q:#2A2015; --bad:#E38080; --lit:#34C6A3;}}
+:root[data-theme="dark"]{
+  --ground:#0D1011; --surface:#15191B; --sunk:#1B2022;
+  --ink:#E4E9E7; --muted:#939E9F; --hair:#2A3134;
+  --accent:#34C6A3; --accent-q:#122924;
+  --warn:#D79A55; --warn-q:#2A2015; --bad:#E38080; --lit:#34C6A3;}
+:root[data-theme="light"]{
+  --ground:#F1F3F2; --surface:#FFFFFF; --sunk:#E7EBE9;
+  --ink:#14181A; --muted:#5A6468; --hair:#D3DAD7;
+  --accent:#0C7A63; --accent-q:#E4F1ED;
+  --warn:#9A5510; --warn-q:#F8EEE2; --bad:#A32B2B; --lit:#14181A;}
+
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+     font-size:var(--step);line-height:1.65;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:60rem;margin:0 auto;padding:3.5rem 1.5rem 6rem;}
+
+header.mast{display:flex;flex-direction:column;gap:1.5rem;margin-bottom:3rem;}
+.glyph{display:grid;grid-template-columns:repeat(8,9px);gap:3px;width:max-content;}
+.glyph i{width:9px;height:9px;background:var(--hair);border-radius:1px;}
+.glyph i.on{background:var(--lit);}
+.eyebrow{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.16em;
+         text-transform:uppercase;color:var(--accent);margin:0;}
+h1{font-family:var(--mono);font-size:clamp(1.7rem,1.05rem + 2.3vw,2.5rem);
+   font-weight:600;letter-spacing:-0.015em;line-height:1.14;margin:0.35rem 0 0;text-wrap:balance;}
+.standfirst{color:var(--muted);max-width:42rem;margin:0.85rem 0 0;}
+
+h2{font-family:var(--mono);font-size:1.02rem;font-weight:650;letter-spacing:0.05em;
+   text-transform:uppercase;margin:3.25rem 0 1.1rem;padding-bottom:0.5rem;
+   border-bottom:1px solid var(--hair);text-wrap:balance;}
+h3{font-size:1.05rem;font-weight:650;margin:2rem 0 0.6rem;text-wrap:balance;}
+p{margin:0 0 1rem;max-width:42rem;}
+ul,ol{margin:0 0 1rem;padding-left:1.3rem;max-width:42rem;}
+li{margin-bottom:0.45rem;}
+a{color:var(--accent);}
+strong{font-weight:650;}
+em.term{font-style:normal;font-weight:650;color:var(--accent);}
+
+code{font-family:var(--mono);font-size:0.855em;background:var(--sunk);
+     padding:0.12em 0.34em;border-radius:3px;overflow-wrap:anywhere;}
+pre{font-family:var(--mono);font-size:0.8rem;line-height:1.6;background:var(--surface);
+    border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:4px;
+    padding:0.95rem 1.1rem;margin:0 0 1.15rem;overflow-x:auto;}
+pre code{background:none;padding:0;font-size:inherit;}
+.cmt{color:var(--muted);}
+
+ol.steps{list-style:none;padding:0;margin:0;max-width:none;display:flex;
+         flex-direction:column;gap:2rem;counter-reset:s;}
+ol.steps > li{counter-increment:s;display:grid;grid-template-columns:2.4rem 1fr;gap:1.1rem;margin:0;}
+ol.steps > li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);
+  font-size:0.8rem;font-weight:650;color:var(--accent);background:var(--accent-q);
+  border-radius:4px;height:2rem;display:grid;place-items:center;}
+ol.steps h3{margin-top:0.2rem;}
+ol.steps > li > div > :last-child{margin-bottom:0;}
+
+table{border-collapse:collapse;width:100%;font-size:0.9rem;}
+.scroll{overflow-x:auto;margin:0 0 1.15rem;border:1px solid var(--hair);border-radius:4px;}
+th,td{text-align:left;padding:0.55rem 0.8rem;border-bottom:1px solid var(--hair);vertical-align:top;}
+th{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;
+   color:var(--muted);background:var(--surface);white-space:nowrap;}
+tbody tr:last-child td{border-bottom:none;}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+.note{border-radius:4px;padding:0.9rem 1.1rem;margin:0 0 1.15rem;font-size:0.94rem;}
+.note > :last-child{margin-bottom:0;}
+.note.warn{background:var(--warn-q);border-left:3px solid var(--warn);}
+.note.warn .lab{color:var(--warn);}
+.note.key{background:var(--accent-q);border-left:3px solid var(--accent);}
+.note.key .lab{color:var(--accent);}
+.note.plain{background:var(--surface);border:1px solid var(--hair);}
+.note.plain .lab{color:var(--muted);}
+.lab{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.13em;text-transform:uppercase;
+     font-weight:650;display:block;margin-bottom:0.35rem;}
+
+.flagbox{background:var(--surface);border:1px solid var(--hair);border-radius:4px;
+         padding:1.1rem 1.2rem;margin:0 0 1.15rem;}
+.flagbox .v{font-family:var(--mono);font-size:0.9rem;font-weight:600;
+            overflow-wrap:anywhere;line-height:1.5;margin:0.3rem 0 0;}
+
+dl.gloss{margin:0 0 1.15rem;max-width:42rem;}
+dl.gloss dt{font-weight:650;margin-top:0.9rem;}
+dl.gloss dt:first-child{margin-top:0;}
+dl.gloss dd{margin:0.15rem 0 0;color:var(--muted);}
+
+details.src{background:var(--surface);border:1px solid var(--hair);border-radius:4px;
+            margin:0 0 1rem;overflow:hidden;}
+details.src > summary{cursor:pointer;padding:0.7rem 1rem;font-family:var(--mono);
+  font-size:0.82rem;font-weight:650;letter-spacing:0.02em;list-style:none;
+  display:flex;align-items:center;gap:0.6rem;}
+details.src > summary::-webkit-details-marker{display:none;}
+details.src > summary::before{content:"+";color:var(--accent);font-weight:700;width:0.8em;}
+details.src[open] > summary::before{content:"\2212";}
+details.src > summary:hover{background:var(--sunk);}
+details.src > summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+details.src > summary .fnote{font-family:var(--sans);font-weight:400;color:var(--muted);
+  font-size:0.8rem;margin-left:auto;text-align:right;}
+details.src pre{margin:0;border:none;border-top:1px solid var(--hair);border-left:none;
+  border-radius:0;background:var(--surface);}
+
+footer{margin-top:4rem;padding-top:1.25rem;border-top:1px solid var(--hair);
+       color:var(--muted);font-size:0.85rem;}
+@media (max-width:34rem){
+  ol.steps > li{grid-template-columns:1fr;gap:0.5rem;}
+  ol.steps > li::before{width:2rem;}
+  details.src > summary{flex-wrap:wrap;}
+  details.src > summary .fnote{margin-left:0;width:100%;text-align:left;}
+}
+</style>
+
+<div class="wrap">
+<header class="mast">
+  <div class="glyph" id="g" aria-hidden="true"></div>
+  <div>
+    <p class="eyebrow">DEF CON 34 &middot; Baosec-lite badge &middot; Document 2 of 2</p>
+    <h1>Ko: pulling the shared badge secret out of the encrypted filesystem</h1>
+    <p class="standfirst">
+      Ko is the secret every DC34 badge shares, the one that makes the light-pattern exchange
+      work. It lives on a separate flash chip inside an encrypted filesystem. This explains what
+      that means, how the keys nest inside each other, the one-line bug that blocked us for a
+      day, and the shortcut that made the whole thing a single boot cycle.
+    </p>
+  </div>
+</header>
+
+<div class="note warn">
+  <span class="lab">Read document 1 first</span>
+  <p>Everything here runs inside the payload from
+  <a href="01-flag1.md">THE_FLAG_1: how
+  we got it, explained from scratch</a>. That document covers the badge, the boot chain, the
+  unsigned-header flaw, how to get into update mode safely, and how to photograph and decode the
+  screen. This one assumes all of it.</p>
+</div>
+
+<div class="flagbox">
+  <span class="lab" style="color:var(--accent)">Ko, the shared light-exchange secret</span>
+  <p class="v"><Ko, 32 bytes></p>
+  <p style="margin:0.55rem 0 0;color:var(--muted);font-size:0.88rem">
+    <code>sha256</code> begins <code>dca9ea49</code>, which is the value the badge's own source
+    code carries as its self-check. On-chip <code>crc32 = <crc from page 3></code>.
+    Blank this box out before sharing the page around.
+  </p>
+</div>
+
+<h2>Part 1 &middot; What Ko actually is</h2>
+
+<p>The badge game is about collecting light patterns from other people. When two badges "breed",
+they trade a pattern over QR codes on their screens. That trade is encrypted, and the key is
+split in two:</p>
+
+<ul>
+  <li><strong>Kp</strong>, the public part. Published openly, and deliberately made longer over
+      the course of the conference so brute-forcing gets easier each day.</li>
+  <li><strong>Ko</strong>, the secret part. The same on every badge, and wiped the moment a badge
+      enters developer mode.</li>
+</ul>
+
+<p>The design document says it plainly at <code>defcon-scheme.md:114</code>: <em>"Extraction of
+Ko requires a break of the badge security. Effectively, Ko is a 'flag' that is there to be
+captured."</em> You can brute-force it, or you can break the badge. This is the second route.</p>
+
+<div class="note plain">
+  <span class="lab">Worth knowing before you spend a week on it</span>
+  <p>There is no third flag. <code>THE_FLAG_1</code> is the only flag slot that exists in the
+  firmware (<code>offsets/baosec.rs:131</code>), and the design document calls Ko the other one.
+  We spent real time hunting a hidden third secret in RRAM, in the chip's factory-programmed
+  region, and in the shipped bitmap images. It was never there.</p>
+</div>
+
+<h2>Part 2 &middot; Where it lives, and the nest of keys around it</h2>
+
+<p>Ko is not in the keystore safe from document 1. It sits in the badge's <strong>filesystem</strong>,
+which is stored on a <em class="term">separate flash memory chip</em> wired to the processor over
+a four-wire bus called SPI. The processor cannot simply read that chip like normal memory. It has
+to ask for each block over the bus, one request at a time.</p>
+
+<p>The filesystem is called the <strong>PDDB</strong>, and it is encrypted. Getting a value out of
+it means unwrapping three layers:</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Layer</th><th>What it is</th><th>Where it comes from</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="n">1. master key</td>
+      <td>A 32-byte key derived inside the chip</td>
+      <td>Built by hashing together the root seed and roughly 250 decoy keys from the keystore.
+          Reading those needs document 1's technique.</td>
+    </tr>
+    <tr>
+      <td class="n">2. basis key</td>
+      <td>The key that actually decrypts filesystem pages</td>
+      <td>Stored on the flash chip, wrapped (encrypted) under the master key, in a
+          plain-to-find 4096-byte page.</td>
+    </tr>
+    <tr>
+      <td class="n">3. the data</td>
+      <td>Ko itself, 32 bytes</td>
+      <td>Inside one encrypted 4096-byte page somewhere in a 4 MB region.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>Layer 2 is the interesting one. The page holding the wrapped keys is called
+<code>StaticCryptoData</code>, and it is <strong>not encrypted</strong>. It is just sitting there
+at a fixed offset, with a known layout:</p>
+
+<pre><code>flash offset 0x40_3000        <span class="cmt">// baosec-lite build (0x40_4000 on the 4 MiB build)</span>
+  +0x00  version        u32       <span class="cmt">// must read 2. this is your "found it" check.</span>
+  +0x04  system_key_pt  [u8; 40]  <span class="cmt">// wrapped</span>
+  +0x2C  system_key     [u8; 40]  <span class="cmt">// wrapped. this is the one we want.</span>
+  +0x54  salt_base      [u8; 4012]</code></pre>
+
+<p>Those 40-byte blobs are unwrapped with a standard called <strong>AES key wrap</strong>, using
+the master key <em>directly</em>. No further derivation, no salt, no hashing:
+<code>store.rs:273</code> is literally <code>Kek::from(self.master_key)</code>.</p>
+
+<div class="note key">
+  <span class="lab">The part that makes this trustworthy</span>
+  <p>AES key wrap has a built-in 64-bit integrity check. If the unwrap succeeds, the key you used
+  was correct, with overwhelming probability.</p>
+  <p>That matters a lot here. Our master key had been <em>unverified</em> for the entire project.
+  We had been checking our work against the badge's serial-number slot, and that slot is readable
+  by everyone, so a successful read never proved we could reach the protected ones. This unwrap
+  is the first genuine proof. It passed.</p>
+</div>
+
+<h2>Part 3 &middot; The bug that cost us a day</h2>
+
+<p>Every attempt to read the flash chip returned <code>0xff</code> for every byte. That looks
+exactly like an empty chip, and we nearly wrote it off as one.</p>
+
+<p>Here is what was actually happening. The SPI bus can run in two speeds: <strong>one wire</strong>
+(slow, the default) or <strong>four wires</strong> (fast, called quad or QPI mode). The chip has to
+be told to switch. The read function in the badge's own driver,
+<code>Spim::mem_read()</code>, only ever issues the four-wire read command
+<code>0xEB</code> (<code>spim.rs:1262</code>), and it frames that command using whatever mode the
+driver currently thinks it is in.</p>
+
+<p>Our payload never switched the chip into quad mode. So we were shouting a four-lane question
+down a single wire. The chip did not recognise the command, never replied, and the bus floated to
+its resting state, which the board pulls high. All ones. Forever.</p>
+
+<pre><code>let id_spi = fl.mem_read_id_flash();          <span class="cmt">// 1-lane. also latches command_set.</span>
+let sr     = fl.flash_read_status_register(); <span class="cmt">// 1-lane.</span>
+fl.mem_qpi_mode(true);                        <span class="cmt">// <-- THIS. one line.</span>
+let id_qpi = fl.mem_read_id_flash();          <span class="cmt">// now confirm it in 4-lane mode.</span></code></pre>
+
+<p>The loader does this at <code>swap.rs:116</code>. Boot1 does it at
+<code>usb/glue.rs:66</code>. Our payload was the only code on the chip that did not.</p>
+
+<div class="note warn">
+  <span class="lab">Do not call identify_flash_reset_qpi(), even though it looks right</span>
+  <p>There is a convenient-looking setup function that seems to do all of this for you. Avoid it.
+  It ends by calling <code>flash_ensure_qe()</code>, whose wait-for-ready loop is
+  <code>loop { if rdsr &amp; 1 == 0 { break } }</code> (<code>spim.rs:1228-1235</code>). On a bus
+  that reads <code>0xff</code>, <code>0xff &amp; 1</code> is 1, so it never exits. You get a black
+  screen and lose a boot cycle, with nothing to show for it.</p>
+  <p>Worse, it can issue a <strong>permanent</strong> write to the flash chip's configuration
+  register. The loader's own source comment at <code>swap.rs:109</code> reads: <em>"TODO: figure
+  out why writing this causes reads to break (every other read works)."</em> The vendor commented
+  out their own call to it. Take the hint.</p>
+</div>
+
+<p>A useful diagnostic falls out of this. Reading the chip's ID in <em>both</em> modes separates
+every possible failure:</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>1-lane ID</th><th>4-lane ID</th><th>What it means</th></tr></thead>
+  <tbody>
+    <tr><td class="n">valid</td><td class="n">valid</td><td>Everything works. This is what we got: <code>0x1732ba</code> both times.</td></tr>
+    <tr><td class="n">valid</td><td class="n">0xffffff</td><td>Chip is present but its quad-enable bit is not set</td></tr>
+    <tr><td class="n">0xffffff</td><td class="n">0xffffff</td><td>Chip is unpowered, held in reset, or not wired to where you think</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Part 4 &middot; The shortcut</h2>
+
+<p>Having the basis key is not the same as having Ko. Normally you would now parse the filesystem:
+read its page table, decrypt each entry, verify a checksum, walk to the directory named
+<code>dc34</code>, find the entry named <code>k0</code>, follow it to the right page. That is a
+few hundred lines of fiddly code, and every one of those steps is a chance to get a byte order
+wrong and see nothing.</p>
+
+<p>We skipped all of it.</p>
+
+<div class="note key">
+  <span class="lab">The idea</span>
+  <p>The badge's own source code contains <code>sha256(k0)</code> truncated to four bytes, as a
+  self-check. It is right there at <code>dc34-vault/src/main.rs:42</code>:
+  <code>dca9ea49</code>.</p>
+  <p>So we do not need to know where Ko is. Decrypt <em>every</em> page in the region, hash every
+  32-byte window inside each one, and stop when a hash starts with <code>dca9ea49</code>. That is
+  roughly 2 million hashes, which the chip chews through in well under a minute. And unlike every
+  other measurement in this project, <strong>a hit cannot be a false positive</strong>.</p>
+</div>
+
+<p>Every page has the same shape (<code>hw.rs:60</code>, <code>hw.rs:1923</code>):</p>
+
+<pre><code>[ nonce (12 bytes) | ciphertext (4068 bytes) | tag (16 bytes) ]   = 4096 bytes</code></pre>
+
+<p>The encryption is AES-GCM-SIV. It normally does two jobs: it hides the data, and it proves the
+data was not tampered with. We only want the first job, and skipping the second one buys a lot:</p>
+
+<ul>
+  <li>In GCM-SIV, the tag <em>is</em> the counter seed for decryption (RFC 8452 section 4). So
+      decryption needs nothing but the key, the nonce, and the tag.</li>
+  <li>Verification would need the associated data, which is built from the filesystem's name for
+      the partition, a version number, and the badge's DNA value in a particular byte order.
+      Three chances to be subtly wrong, all of them avoided.</li>
+  <li>We do not need integrity checking anyway. The <code>dca9ea49</code> oracle is a far stronger
+      check than the tag would have been.</li>
+</ul>
+
+<h2>Part 5 &middot; Procedure</h2>
+
+<ol class="steps">
+
+<li><div>
+<h3>Start from the document 1 payload</h3>
+<p>Same crate, same linker script, same <code>_start</code>, same U-mode trip to read the serial
+number as a liveness control. Add <code>mod ko;</code>, add the master key constant, and replace
+<code>render()</code> with the version below.</p>
+<p>Add one dependency for the AES primitives:</p>
+<pre><code>aes = { version = "0.8", default-features = false }</code></pre>
+</div></li>
+
+<li><div>
+<h3>Watch the size ceiling</h3>
+<p>The crypto code roughly doubles the payload, from about 12 KB to about 24 KB. The window
+between the loader and the operating system is only 36 KB. Ours landed at
+<code>0x60095E84</code>, leaving 12668 bytes of headroom. <code>elf2bin.py</code> from document 1
+asserts this, so let it.</p>
+<pre><code>cargo build --release
+python elf2bin.py target/riscv32imac-unknown-none-elf/release/dc34-payload payload.bin
+<span class="cmt"># OK: 12668 bytes of headroom below KERNEL_START</span></code></pre>
+</div></li>
+
+<li><div>
+<h3>Deploy exactly as before</h3>
+<p>Cold boot into update mode (cells out, wait 30 seconds, hold a face button while plugging in),
+confirm the badge enumerates as <code>Baochip_1x</code>, then upload and redirect the jump.</p>
+<pre><code>python uf2send.py file 0x60090000 payload.bin
+python uf2send.py word 0x60060000 0003006F</code></pre>
+</div></li>
+
+<li><div>
+<h3>Power cycle, then wait</h3>
+<p><strong>Wait about 60 seconds before you expect anything.</strong> The chip is grinding
+software AES and SHA-256 across 4 MB, and the screen stays dark the whole time. That is work, not
+a crash. We nearly power-cycled through our own successful run.</p>
+</div></li>
+
+<li><div>
+<h3>Photograph seven pages and decode</h3>
+<p>Same decoder as document 1. The pages are:</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Page</th><th>Contents</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td>flash ID 1-lane (3 bytes), status register, flash ID 4-lane (3 bytes), flags</td></tr>
+    <tr><td class="n">2</td><td>serial-number control. Must be exact or discard the whole set.</td></tr>
+    <tr><td class="n">3</td><td>found flag, <code>0x5A</code> marker, where it was found, checksum ends</td></tr>
+    <tr><td class="n">4 to 7</td><td><strong>Ko</strong>, eight bytes at a time</td></tr>
+  </tbody>
+</table>
+</div>
+<pre><code>python decode.py page*.jpg
+python verify_ko.py &lt;p4&gt; &lt;p5&gt; &lt;p6&gt; &lt;p7&gt; --diag <id> <sr> <id> <flags></code></pre>
+<p>The <code>0x5A</code> on page 3 is a fixed marker. If it decodes as anything else, your photo
+is misaligned and nothing else on that page can be trusted.</p>
+</div></li>
+
+<li><div>
+<h3>Restore the badge</h3>
+<pre><code>python uf2send.py word 0x60060000 3000006F</code></pre>
+<p>Nothing was ever written to the flash chip, so the filesystem, your saved data, and any custom
+splash image are all untouched.</p>
+</div></li>
+
+</ol>
+
+<h2>Part 6 &middot; What our run actually returned</h2>
+
+<pre><code>page 1: 1732ba00 1732ba41
+  id_spi     = 0x1732ba     valid, in SPI_FLASH_IDS
+  status reg = 0x00
+  id_qpi     = 0x1732ba     valid. the flash answered on both lane counts.
+  flags      = 0x41
+     bit 0 -> StaticCryptoData found at 0x40_3000  (so: baosec-lite build)
+     bit 1 -> nothing at 0x40_4000                 (so: not the 4 MiB build)
+     bit 6 -> AES-KWP integrity check PASSED       (so: master key confirmed)
+
+page 2: <your UUID control>                           exact match, run is valid
+page 3: 01 5a <where> <crc ends>                           found=1, marker 0x5A ok
+
+pages 4 to 7:
+  k0     = <Ko, 32 bytes>
+  sha256 = dca9ea49<...>
+                                                   ^^^^^^^^ the published oracle
+  crc32  = <crc from page 3>                              matches the on-chip value on page 3</code></pre>
+
+<h2>Part 7 &middot; Every file, complete</h2>
+
+<p>The build files, uploader, ELF flattener and photo decoder are unchanged from document 1. These
+two files are what is new.</p>
+
+<details class="src"><summary>src/ko.rs<span class="fnote">AES key unwrap + GCM-SIV + the oracle</span></summary><pre><code>//! Ko extraction crypto: AES-KWP unwrap, AES-GCM-SIV decrypt-without-verify.
+//!
+//! Verification is deliberately skipped: POLYVAL is unnecessary because in GCM-SIV
+//! the stored tag *is* the CTR seed (RFC 8452 §4), and we have a far better oracle
+//! than the tag: `sha256(k0)[..4] == dca9ea49`, published in the vendor&#x27;s own
+//! source at dc34-vault/src/main.rs:42. Skipping the tag also retires every
+//! AAD-byte-order risk (basis name, PDDB_VERSION, DNA endianness).
+
+use aes::Aes256;
+use aes::cipher::generic_array::GenericArray;
+use aes::cipher::{BlockDecrypt, BlockEncrypt, KeyInit};
+
+/// RFC 5649 AES-KWP unwrap of a 40-byte blob to 32 bytes.
+///
+/// The AIV check is 64 bits wide, so a pass is strong evidence the KEK is right.
+/// That makes this the master key&#x27;s first real correctness oracle. The UUID slot
+/// never was one, because `PartitionAccess::Open` is readable by every coreuser id.
+pub fn kwp_unwrap(kek: &amp;[u8; 32], ct: &amp;[u8; 40], out: &amp;mut [u8; 32]) -&gt; bool {
+    let c = Aes256::new(GenericArray::from_slice(kek));
+    const N: usize = 4; // 40/8 - 1
+    let mut a = [0u8; 8];
+    a.copy_from_slice(&amp;ct[0..8]);
+    let mut r = [[0u8; 8]; N];
+    for i in 0..N {
+        r[i].copy_from_slice(&amp;ct[8 + 8 * i..16 + 8 * i]);
+    }
+    for j in (0..6usize).rev() {
+        for i in (1..=N).rev() {
+            let t = (N * j + i) as u64;
+            let mut blk = [0u8; 16];
+            blk[0..8].copy_from_slice(&amp;(u64::from_be_bytes(a) ^ t).to_be_bytes());
+            blk[8..16].copy_from_slice(&amp;r[i - 1]);
+            let mut g = *GenericArray::from_slice(&amp;blk);
+            c.decrypt_block(&amp;mut g);
+            a.copy_from_slice(&amp;g[0..8]);
+            r[i - 1].copy_from_slice(&amp;g[8..16]);
+        }
+    }
+    for i in 0..N {
+        out[8 * i..8 * i + 8].copy_from_slice(&amp;r[i]);
+    }
+    // KWP AIV = A65959A6 || MLI(be32); MLI must be 32 for a 256-bit key.
+    a[0] == 0xA6
+        &amp;&amp; a[1] == 0x59
+        &amp;&amp; a[2] == 0x59
+        &amp;&amp; a[3] == 0xA6
+        &amp;&amp; u32::from_be_bytes([a[4], a[5], a[6], a[7]]) == 32
+}
+
+/// AES-GCM-SIV CTR pass, in place. RFC 8452 §4: derive per-nonce keys, then CTR
+/// seeded with the tag, MSB of the last byte forced to 1, counter = LE u32 at [0..4].
+pub fn gcm_siv_ctr(key: &amp;[u8; 32], nonce: &amp;[u8; 12], tag: &amp;[u8; 16], data: &amp;mut [u8]) {
+    let c = Aes256::new(GenericArray::from_slice(key));
+    let mut enc = [0u8; 32];
+    for i in 0..6u32 {
+        let mut b = [0u8; 16];
+        b[0..4].copy_from_slice(&amp;i.to_le_bytes());
+        b[4..16].copy_from_slice(nonce);
+        let mut g = *GenericArray::from_slice(&amp;b);
+        c.encrypt_block(&amp;mut g);
+        // blocks 0..1 make the auth key (unused here); 2..5 make the 256-bit enc key
+        if i &gt;= 2 {
+            let o = (i as usize - 2) * 8;
+            enc[o..o + 8].copy_from_slice(&amp;g[0..8]);
+        }
+    }
+    let ec = Aes256::new(GenericArray::from_slice(&amp;enc));
+    let mut ctr = *tag;
+    ctr[15] |= 0x80;
+    let mut off = 0usize;
+    while off &lt; data.len() {
+        let mut g = *GenericArray::from_slice(&amp;ctr);
+        ec.encrypt_block(&amp;mut g);
+        let n = core::cmp::min(16, data.len() - off);
+        for k in 0..n {
+            data[off + k] ^= g[k];
+        }
+        let v = u32::from_le_bytes([ctr[0], ctr[1], ctr[2], ctr[3]]).wrapping_add(1);
+        ctr[0..4].copy_from_slice(&amp;v.to_le_bytes());
+        off += 16;
+    }
+}
+
+/// The published oracle. Returns the offset of the first 32-byte window whose
+/// SHA-256 begins dc a9 ea 49, or None.
+pub fn find_k0(buf: &amp;[u8]) -&gt; Option&lt;usize&gt; {
+    use sha2::{Digest, Sha256};
+    if buf.len() &lt; 32 {
+        return None;
+    }
+    let mut w = 0usize;
+    while w + 32 &lt;= buf.len() {
+        let d = Sha256::digest(&amp;buf[w..w + 32]);
+        if d[0] == 0xdc &amp;&amp; d[1] == 0xa9 &amp;&amp; d[2] == 0xea &amp;&amp; d[3] == 0x49 {
+            return Some(w);
+        }
+        w += 4;
+    }
+    None
+}
+</code></pre></details>
+
+<details class="src"><summary>src/main.rs (the Ko render function)<span class="fnote">flash bring-up + sweep</span></summary><pre><code>// src/main.rs, the Ko half. The U-mode section is unchanged from document 1;
+// only the machine-mode `render()` differs, so that is what is shown here.
+// The full file is document 1&#x27;s payload with this function swapped in, plus
+// `mod ko;` and the MASTER_KEY constant below.
+
+mod ko;
+
+/// Derived on-chip in an earlier run (see document 1&#x27;s technique applied to the
+/// keystore&#x27;s HKDF inputs). The AES-KWP AIV check below is its FIRST real
+/// correctness oracle: the UUID slot never was one, because it is
+/// PartitionAccess::Open and every coreuser id can read it.
+const MASTER_KEY: [u8; 32] = [
+    0xb9,0x4b,0xc9,0x7f,0x73,0x28,0x2b,0xd5,0xfe,0x0a,0x30,0xf6,0xac,0xec,0x58,0x4e,
+    0x56,0xb5,0x7e,0x23,0xc3,0x23,0xc1,0xb6,0x32,0xe2,0x37,0x8e,0x59,0x08,0x81,0x80,
+];
+
+#[unsafe(no_mangle)]
+pub extern &quot;C&quot; fn render() -&gt; ! {
+    unsafe { core::arch::asm!(&quot;csrw satp, zero&quot;, &quot;sfence.vma&quot;); }
+    let iox  = bao1x_hal::iox::Iox::new(utralib::utra::iox::HW_IOX_BASE as *mut u32);
+    let udma = bao1x_hal::udma::GlobalConfig::new();
+    let mut oled = open_oled(&amp;iox, &amp;udma);
+    let u = unsafe { *core::ptr::addr_of!(RES_U) };   // UUID control from the U-mode phase
+
+    // ---- SPI FLASH bring-up ------------------------------------------------
+    // Deliberately NOT identify_flash_reset_qpi(). It ends in flash_ensure_qe()
+    // (spim.rs:1029 -&gt; :1446), whose write-in-progress wait is
+    //     loop { if rdsr &amp; 1 == 0 { break } }        (spim.rs:1228-1235)
+    // On a bus reading 0xFF, 0xFF &amp; 1 == 1 forever: a dark screen and a lost
+    // boot cycle. It can also issue a NON-VOLATILE status-register write, and
+    // the loader&#x27;s own comment at swap.rs:109 says that write breaks later
+    // reads. Everything below is read-only against the flash device.
+    use bao1x_hal::{board::setup_memory_pins, ifram::IframRange, udma::*};
+    use bao1x_api::udma::PeriphId;
+    const PERCLK: u32 = 100_000_000;
+
+    let channel = setup_memory_pins(&amp;iox);
+    udma.clock_on(PeriphId::from(channel));
+    let mut fl = unsafe {
+        Spim::new_with_ifram(
+            channel,
+            PERCLK / 2,                     // spi_clk
+            PERCLK,                         // sys_clk -&gt; clk_div = 2, same as the loader
+            SpimClkPol::LeadingEdgeRise,
+            SpimClkPha::CaptureOnLeading,
+            SpimCs::Cs0,                    // Cs0 is FLASH. Cs1 is PSRAM: wrong chip.
+            0, 0, None,
+            16,                             // tx buffer
+            4096,                           // rx buffer, one page
+            Some(6),                        // 0xEB needs 6 dummy cycles (spim.rs:1260)
+            None,                           // = SpimMode::Standard
+            IframRange::from_raw_parts(
+                bao1x_hal::board::SPIM_FLASH_IFRAM_ADDR,
+                bao1x_hal::board::SPIM_FLASH_IFRAM_ADDR,
+                4096 * 2,
+            ),
+        )
+    };
+    // 1-lane RDID first. Pure read, needs no QE bit, and it latches command_set,
+    // which mem_qpi_mode(true) needs in order to pick opcode 0x35 vs 0x38.
+    let id_spi = fl.mem_read_id_flash();
+    let sr     = fl.flash_read_status_register();
+    fl.mem_qpi_mode(true);          // &lt;-- THE ONE MISSING LINE. loader swap.rs:116.
+    let id_qpi = fl.mem_read_id_flash();
+
+    // ---- find the key page and unwrap the basis key ------------------------
+    // baosec-lite puts StaticCryptoData at flash 0x40_3000; the 4 MiB build puts
+    // it at 0x40_4000. Read both rather than betting on the build config.
+    let mut page       = [0u8; 4096];
+    let mut sysk       = [0u8; 32];
+    let mut scd_flags  = 0u8;
+    for (bit, scd_at) in [(0u8, 0x0040_3000u32), (1u8, 0x0040_4000u32)] {
+        fl.mem_read(scd_at, &amp;mut page[..], false);
+        if u32::from_le_bytes([page[0], page[1], page[2], page[3]]) == 2 {   // SCD_VERSION
+            scd_flags |= 1 &lt;&lt; bit;
+            let mut wrapped = [0u8; 40];
+            wrapped.copy_from_slice(&amp;page[0x2C..0x2C + 40]);   // system_key, hw.rs:79-89
+            if ko::kwp_unwrap(&amp;MASTER_KEY, &amp;wrapped, &amp;mut sysk) {
+                scd_flags |= 0x40;      // AIV passed: MASTER KEY CONFIRMED CORRECT
+                break;
+            }
+        }
+    }
+
+    // ---- exhaustive decrypt-and-oracle sweep -------------------------------
+    // No filesystem parsing at all. Every page is
+    //     [ nonce(12) | ciphertext(4068) | tag(16) ]        hw.rs:60, :1923
+    // so decrypt each one and SHA-256 every 32-byte window against the prefix
+    // dca9ea49, which the vendor published in dc34-vault/src/main.rs:42.
+    // A hit is proof. There is no way to fool this check.
+    let mut k0     = [0u8; 32];
+    let mut hit_at = 0xFFFF_FFFFu32;
+    let mut off    = 0x0040_0000u32;                 // PDDB_ORIGIN
+    while off &lt; 0x0080_0000 {
+        fl.mem_read(off, &amp;mut page[..], false);
+        // raw pass first: a cheap hedge in case k0 is not stored encrypted
+        if let Some(w) = ko::find_k0(&amp;page[..]) {
+            k0.copy_from_slice(&amp;page[w..w + 32]);
+            hit_at = off + w as u32;
+            break;
+        }
+        if scd_flags &amp; 0x40 != 0 {
+            let mut nonce = [0u8; 12];  nonce.copy_from_slice(&amp;page[0..12]);
+            let mut tag   = [0u8; 16];  tag.copy_from_slice(&amp;page[4080..4096]);
+            ko::gcm_siv_ctr(&amp;sysk, &amp;nonce, &amp;tag, &amp;mut page[12..4080]);
+            if let Some(w) = ko::find_k0(&amp;page[12..4080]) {
+                k0.copy_from_slice(&amp;page[12 + w..12 + w + 32]);
+                hit_at = off | 0x8000_0000;          // high bit: found after decryption
+                break;
+            }
+        }
+        off += 4096;
+    }
+
+    // ---- report ------------------------------------------------------------
+    let kc = crc32(&amp;k0);
+    let p1 = [(id_spi &gt;&gt; 16) as u8, (id_spi &gt;&gt; 8) as u8, id_spi as u8, sr as u8,
+              (id_qpi &gt;&gt; 16) as u8, (id_qpi &gt;&gt; 8) as u8, id_qpi as u8, scd_flags];
+    let p3 = [if hit_at == 0xFFFF_FFFF { 0 } else { 1 }, 0x5A,
+              (hit_at &gt;&gt; 24) as u8, (hit_at &gt;&gt; 16) as u8,
+              (hit_at &gt;&gt; 8) as u8, hit_at as u8,
+              (kc &gt;&gt; 24) as u8, kc as u8];
+    loop {
+        draw_page8(oled.buffer_mut(), &amp;p1,       1); oled.redraw().ok(); spin(400_000_000);
+        draw_page8(oled.buffer_mut(), &amp;u[0..8],  2); oled.redraw().ok(); spin(400_000_000);
+        draw_page8(oled.buffer_mut(), &amp;p3,       3); oled.redraw().ok(); spin(400_000_000);
+        for p in 0..4usize {
+            draw_page8(oled.buffer_mut(), &amp;k0[p*8..p*8+8], p + 4);
+            oled.redraw().ok(); spin(400_000_000);
+        }
+    }
+}
+</code></pre></details>
+
+<details class="src"><summary>verify_ko.py<span class="fnote">check the oracle, read page 1</span></summary><pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;verify_ko.py -- check the four decoded pages really are Ko, and read page 1.
+
+  python verify_ko.py &lt;p4&gt; &lt;p5&gt; &lt;p6&gt; &lt;p7&gt; --diag &lt;page1hex&gt;
+
+The oracle is not ours. bunnie left sha256(k0)[0:4] in his own source at
+dc34-vault/src/main.rs:42, where the badge uses it to check its own key.
+Either the prefix is dca9ea49 or you do not have Ko. There is no middle.
+&quot;&quot;&quot;
+import hashlib, sys, zlib
+
+SPI_FLASH_IDS = [0x1820c2, 0x3825c2, 0x17600b, 0x1732ba, 0x172085]
+
+args = sys.argv[1:]
+diag = None
+if &quot;--diag&quot; in args:
+    i = args.index(&quot;--diag&quot;); diag = args[i+1]; args = args[:i]
+
+k0 = b&quot;&quot;.join(bytes.fromhex(p) for p in args[:4])
+h  = hashlib.sha256(k0).hexdigest()
+print(&quot;k0     =&quot;, k0.hex())
+print(&quot;sha256 =&quot;, h)
+print(&quot;oracle = dca9ea49 -&gt;&quot;, &quot;MATCH, this is Ko&quot; if h.startswith(&quot;dca9ea49&quot;)
+                              else &quot;NO MATCH, this is not Ko&quot;)
+print(f&quot;crc32  = 0x{zlib.crc32(k0) &amp; 0xFFFFFFFF:08x}  (compare with page 3)&quot;)
+
+if diag:
+    d = bytes.fromhex(diag)
+    id_spi = int.from_bytes(d[0:3], &quot;big&quot;)
+    id_qpi = int.from_bytes(d[4:7], &quot;big&quot;)
+    f = d[7]
+    print(&quot;\npage 1 diagnostics&quot;)
+    print(f&quot;  id_spi    = 0x{id_spi:06x}   valid: {id_spi in SPI_FLASH_IDS}&quot;)
+    print(f&quot;  status reg= 0x{d[3]:02x}&quot;)
+    print(f&quot;  id_qpi    = 0x{id_qpi:06x}   valid: {id_qpi in SPI_FLASH_IDS}&quot;)
+    print(f&quot;  SCD @ 0x403000 (baosec-lite) : {bool(f &amp; 0x01)}&quot;)
+    print(f&quot;  SCD @ 0x404000 (4 MiB build) : {bool(f &amp; 0x02)}&quot;)
+    print(f&quot;  AES-KWP AIV passed           : {bool(f &amp; 0x40)}&quot;
+          &quot;   &lt;- this also confirms the master key&quot;)
+    if id_spi not in SPI_FLASH_IDS:
+        print(&quot;\n  The flash never answered. If you see 0xffffff here, you almost&quot;)
+        print(&quot;  certainly forgot fl.mem_qpi_mode(true) before the first mem_read.&quot;)
+</code></pre></details>
+
+
+<h2>Part 8 &middot; What we would tell ourselves at the start</h2>
+
+<p>Four things, all of them the same thing wearing different hats.</p>
+
+<ol>
+  <li><strong>An absence is not a measurement.</strong> Reading <code>0xff</code> from the flash
+      and concluding "the chip is blank" was wrong, and we only caught it by adding a read whose
+      answer we already knew. Reading zeros from the keystore and concluding "the protection held"
+      was wrong the same way.</li>
+  <li><strong>A control has to be in the same class as the claim.</strong> The serial-number slot
+      is readable by everyone. Passing it never said anything about the protected slots. We wrote
+      that mistake into two documents before the AES unwrap finally settled it.</li>
+  <li><strong>Look for an oracle before you build the machinery.</strong> The
+      <code>dca9ea49</code> check was in the vendor's source the whole time. Finding it first
+      turned several hundred lines of filesystem parsing into a loop, and turned "this looks
+      right" into proof.</li>
+  <li><strong>Compare your code against the vendor's working code, line by line.</strong> The
+      missing <code>mem_qpi_mode(true)</code> cost roughly a day. Two separate places in the
+      vendor tree call it immediately before their first read. We had read both files, and had
+      not diffed the sequence.</li>
+</ol>
+
+<footer>
+  Device: Baosec-lite, board type <code>Oem</code>, stepping A0 &middot; UUID
+  <code><your badge UUID></code> &middot; Xous <code>v0.10.1-43-g8964027ff</code> &middot;
+  boot1 <code>v0.10.1-0-gbcfdca404</code> &middot; flash <code>0x1732ba</code>.
+  Reported to <code>dc34@baochip.com</code>.
+</footer>
+
+</div>
+<script>
+  // eight bytes in the payload's own output format, which draws a skull
+  (function () {
+    var bytes = [0x3C,0x7E,0xDB,0xFF,0xE7,0x7E,0x5A,0x3C];
+    var g = document.getElementById('g'), html = '';
+    for (var r = 0; r < 8; r++)
+      for (var b = 0; b < 8; b++)
+        html += '<i class="' + ((bytes[r] >> (7 - b)) & 1 ? 'on' : '') + '"></i>';
+    g.innerHTML = html;
+  })();
+</script>

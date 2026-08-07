@@ -1,0 +1,35 @@
+[package]
+name    = "dc34-payload"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Two payloads. Build one at a time; each is flashed on its own boot cycle.
+[[bin]]
+name = "flag1"
+path = "src/bin/flag1.rs"
+
+[[bin]]
+name = "ko"
+path = "src/bin/ko.rs"
+
+# These are path dependencies on a git worktree pinned to YOUR badge's commit.
+# See the repo README: `make worktree` puts it at ../xous-BADGE.
+# Do not point these at upstream HEAD. The bug this exploits is fixed there, so
+# the constants and line numbers will not match the badge in your hand.
+[dependencies]
+utralib   = { path = "../xous-BADGE/utralib",         default-features = false, features = ["bao1x"] }
+bao1x-hal = { path = "../xous-BADGE/libs/bao1x-hal",  default-features = false, features = ["loader-baosec", "security"] }
+bao1x-api = { path = "../xous-BADGE/libs/bao1x-api",  default-features = false }
+ux-api    = { path = "../xous-BADGE/libs/ux-api",     default-features = false, features = ["loader-baosec"] }
+sha2      = { version = "0.10", default-features = false }
+hkdf      = { version = "0.12", default-features = false }
+aes       = { version = "0.8",  default-features = false }
+
+[profile.release]
+# The gap between the loader and KERNEL_START is only 36 KiB. Keep it small.
+opt-level     = "z"
+lto           = true
+panic         = "abort"
+codegen-units = 1
+debug         = false

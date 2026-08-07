@@ -1,0 +1,16 @@
+# The pinned firmware worktree. Create it yourself, per the README: it belongs to
+# upstream and must match YOUR badge's commit.
+/xous-BADGE/
+/xous-core/
+
+target/
+*.bin
+.venv/
+__pycache__/
+*.pyc
+
+# Photographs of your own badge's pages contain your own secrets.
+*.jpg
+*.jpeg
+*.png
+!docs/img/*.svg
