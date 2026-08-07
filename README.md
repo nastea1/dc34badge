@@ -39,6 +39,10 @@ Two things are recoverable from a sealed badge, and this repo covers both.
 | **THE_FLAG_1** | A 32-byte value in keystore slot 260, guarded by hardware access control | [docs/01-flag1.md](docs/01-flag1.md) |
 | **Ko** | The secret shared by every badge, which encrypts the light-pattern exchange | [docs/02-ko.md](docs/02-ko.md) |
 
+Pitfalls that cost boot cycles are in [docs/03-troubleshooting.md](docs/03-troubleshooting.md).
+Whether any of this still applies to current firmware is in
+[docs/04-upstream-status.md](docs/04-upstream-status.md): as of 2026-08-07, **it does**.
+
 There is no third flag. `THE_FLAG_1` is the only flag slot in the firmware
 (`offsets/baosec.rs:131`), and the design document calls Ko the other one at
 `defcon-scheme.md:114`. Time was spent hunting a hidden third secret in RRAM, in
@@ -101,9 +105,9 @@ python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt
 ```
 
 Then pin a checkout of the badge firmware to the commit **your** badge actually
-runs. This is not optional. The flaw is fixed upstream, so reading current code
-means reading about a badge that does not exist. Check your badge's version
-banner first, then:
+runs. This is not optional: constants, offsets and line numbers move between
+versions, and every citation in these docs is against the badge's own commit.
+Check your badge's version banner first, then:
 
 ```sh
 git clone https://github.com/betrusted-io/xous-core.git

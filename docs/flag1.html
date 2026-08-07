@@ -119,6 +119,20 @@ footer{margin-top:4rem;padding-top:1.25rem;border-top:1px solid var(--hair);
   details.src > summary{flex-wrap:wrap;}
   details.src > summary .fnote{margin-left:0;width:100%;text-align:left;}
 }
+
+blockquote.mail{background:var(--sunk);border-left:3px solid var(--muted);border-radius:4px;
+  padding:0.9rem 1.1rem;margin:0 0 1.15rem;color:var(--muted);font-style:italic;max-width:42rem;}
+blockquote.mail > :last-child{margin-bottom:0;}
+blockquote.mail p{max-width:none;}
+.hdrs{font-family:var(--mono);font-size:0.82rem;background:var(--surface);
+  border:1px solid var(--hair);border-radius:4px;padding:0.8rem 1rem;margin:0 0 1.5rem;}
+.hdrs div{display:flex;gap:0.7rem;padding:0.1rem 0;}
+.hdrs span:first-child{color:var(--muted);min-width:4.2rem;}
+.status{display:inline-flex;align-items:center;gap:0.45rem;font-family:var(--mono);
+  font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:650;
+  color:var(--warn);background:var(--warn-q);border-radius:999px;padding:0.28rem 0.7rem;}
+.status::before{content:"";width:0.5rem;height:0.5rem;border-radius:50%;background:var(--warn);}
+hr.sep{border:none;border-top:1px solid var(--hair);margin:3rem 0;}
 </style>
 
 <div class="wrap">
@@ -255,6 +269,19 @@ specifically, the lowest and least privileged level.</p>
 under. You are not breaking the guard. You are using M-mode to construct exactly the user-mode
 context the guard is built to trust, then walking through the front door.</p>
 
+<div class="note plain">
+  <span class="lab">Is this a vulnerability? No, and that matters</span>
+  <p>Upstream added a comment to <code>secboot.rs</code> after this badge shipped that states the
+  design position plainly: the coreuser mechanism "does not offer unbreakable security. Rather, it
+  prevents someone with an arbitrary read primitive from accessing secret keys. <strong>An
+  arbitrary-exec primitive can, of course, forge the ASID and work around the coreuser
+  mechanism.</strong>"</p>
+  <p>So reaching <code>Fw0</code> from U-mode is working as intended and the vendor knows it.
+  Coreuser is scoped to defend against read primitives only, which is a reasonable threat model
+  and it holds up. Everything on this page rests on the <em>previous</em> step: the unsigned
+  header handing you machine mode. That single jump instruction is the whole break.</p>
+</div>
+
 <div class="note warn">
   <span class="lab">Why this was so easy to get wrong</span>
   <p>A denied read returns <strong>zeros and does not fault</strong>. That looks identical to a
@@ -294,10 +321,20 @@ context the guard is built to trust, then walking through the front door.</p>
 
 <li><div>
 <h3>Get the source that matches your badge</h3>
-<p>This matters more than it sounds. The flaw has since been fixed upstream, so if you read the
-current code you will be looking at a badge that does not exist. Check your badge's own version
+<p>This matters more than it sounds. Constants, offsets and line numbers move between versions,
+and every citation in this document is against the badge's own commit. Check your badge's version
 banner, then create a <em class="term">worktree</em>, a second checkout of the repository parked
-at that older commit, so you can read exactly what is running.</p>
+at that commit, so you can read exactly what is running.</p>
+<div class="note warn">
+  <span class="lab">This is not a historical bug</span>
+  <p>Checked against upstream <code>dev</code> <code>5d5bbbfa9</code> (2026-08-03), 197 commits
+  ahead of this badge: <code>sigcheck.rs</code> still returns
+  <code>jump_target = (img_offset) ^ tag</code> and <code>jump_to</code> still jumps there, into
+  the unsigned bytes. <code>UNSIGNED_LEN</code> is still 132, the hash still starts past it, and
+  boot1's <code>uf2</code> write guard is unchanged. Those files have been actively edited since
+  (post-quantum signature support was added to the same function), so this is live code, not
+  something overlooked in an abandoned corner.</p>
+</div>
 <pre><code>git -C repos/xous-core worktree add ./../xous-BADGE 8964027ff   <span class="cmt"># Xous v0.10.1-43</span>
 git -C repos/xous-core worktree add ./../xous-BOOT1 bcfdca404   <span class="cmt"># boot1 v0.10.1-0</span></code></pre>
 </div></li>
@@ -1007,7 +1044,6 @@ everything it does depends on first getting here.</p>
 </div>
 <script>
   // eight bytes in the payload's own output format, which draws a skull
-  // every byte in this project arrived, as an 8x8 grid of lit squares.
   (function () {
     var bytes = [0x3C,0x7E,0xDB,0xFF,0xE7,0x7E,0x5A,0x3C];
     var g = document.getElementById('g'), html = '';

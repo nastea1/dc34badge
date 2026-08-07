@@ -79,8 +79,15 @@ the user-mode context the guard is built to trust.
 git -C xous-core worktree add ../xous-BADGE <your-badge-commit>
 ```
 
-Read your badge's version banner first. The flaw is fixed upstream, so current
-code describes a badge that does not exist.
+Read your badge's version banner first. Constants and line numbers move between
+versions, and every citation here is against the badge's own commit.
+
+> [!NOTE]
+> **This is not a historical bug.** As of upstream `dev` `5d5bbbfa9` (2026-08-03),
+> `sigcheck.rs` still computes `jump_target = (img_offset) ^ tag` and `jump_to` still
+> jumps there, into the unsigned bytes. `boot1`'s `uf2` write guard is unchanged too.
+> The surrounding files have been actively edited since (post-quantum signature support
+> was added), so this was not missed for lack of attention to that code.
 
 ### 2. Build
 
