@@ -39,6 +39,10 @@ Two things are recoverable from a sealed badge, and this repo covers both.
 | **THE_FLAG_1** | A 32-byte value in keystore slot 260, guarded by hardware access control | [docs/01-flag1.md](docs/01-flag1.md) |
 | **Ko** | The secret shared by every badge, which encrypts the light-pattern exchange | [docs/02-ko.md](docs/02-ko.md) |
 
+A second, independent vulnerability found along the way, this one in silicon, is in
+[docs/05-fetch-acl-bypass.md](docs/05-fetch-acl-bypass.md): instruction fetches read RRAM with
+no access control at all.
+
 Pitfalls that cost boot cycles are in [docs/03-troubleshooting.md](docs/03-troubleshooting.md).
 Whether any of this still applies to current firmware is in
 [docs/04-upstream-status.md](docs/04-upstream-status.md): as of 2026-08-07, **it does**.

