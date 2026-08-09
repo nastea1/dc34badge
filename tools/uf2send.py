@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """uf2send.py -- write RRAM through boot1's update-mode `uf2` command.
 
-  uf2send.py word <addr-hex> <value-hex>     one 32-bit little-endian word
+  uf2send.py [--port DEV] word <addr-hex> <value-hex>   one 32-bit little-endian word
   uf2send.py file <addr-hex> <path>          a binary blob, chunked
   uf2send.py --dry ...                       print records, send nothing
 
@@ -37,8 +37,14 @@ def check(addr, n):
     if addr + n > MAX_ADDR:
         sys.exit(f"REFUSING: {addr:#x}+{n} exceeds RRAM storage {MAX_ADDR:#x}")
 
-args = [a for a in sys.argv[1:] if a != "--dry"]
-DRY  = "--dry" in sys.argv
+argv = sys.argv[1:]
+PORT = None
+if "--port" in argv:
+    i = argv.index("--port")
+    PORT = argv[i + 1]
+    del argv[i:i + 2]
+args = [a for a in argv if a != "--dry"]
+DRY  = "--dry" in argv
 if len(args) != 3:
     sys.exit(__doc__)
 mode, addr_s, val = args
@@ -61,20 +67,38 @@ if DRY:
         print("uf2 " + base64.b64encode(r).decode())
     sys.exit(0)
 
-ports = sorted(glob.glob("/dev/cu.usbmodem*"))
-if not ports:
-    sys.exit("no serial port found")
-s = serial.Serial(ports[0], 115200, timeout=3)
+port = PORT
+if port is None:
+    ports = sorted(glob.glob("/dev/cu.usbmodem*"))
+    if not ports:
+        sys.exit("no serial port found")
+    if len(ports) > 1:
+        # Picking the first match silently is how you end up writing a badge payload at whatever
+        # else happens to be plugged in. Make the caller choose.
+        sys.exit("REFUSING: more than one candidate port:\n  " + "\n  ".join(ports) +
+                 "\nPass --port <dev> to say which one is the badge.")
+    port = ports[0]
+print(f"[port] {port}")
+s = serial.Serial(port, 115200, timeout=3)
 s.write(b"\r\n"); time.sleep(0.3); s.reset_input_buffer()
 
 acked = 0
 for i, r in enumerate(recs):
+    want_addr = addr + i * CHUNK
+    want_len = len(data[i*CHUNK:(i+1)*CHUNK])
     s.write(b"uf2 " + base64.b64encode(r) + b"\r\n")
     deadline = time.time() + 3
-    while time.time() < deadline:            # scan for the ack; log lines share this stream
+    while time.time() < deadline:
         line = s.readline().decode(errors="replace")
-        if "OK" in line or "ok" in line:
-            acked += 1
+        # boot1 answers "Wrote <n> to <addr>". Matching on "OK" never fired, and worse, the
+        # command echo is base64 that sometimes contains "ok" by chance, so a bad write could
+        # read as acknowledged. Confirm the count and the address it actually reports.
+        if "Wrote" in line:
+            expect = f"Wrote {want_len} to {want_addr:#x}"
+            if expect in line:
+                acked += 1
+            else:
+                print(f"\n  MISMATCH at record {i}: expected '{expect}', got '{line.strip()}'")
             break
     print(f"\r  {i+1}/{nblk} acked={acked}", end="", flush=True)
 print(f"\n[done] {acked}/{nblk} records acknowledged")
