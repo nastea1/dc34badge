@@ -79,10 +79,10 @@
 <text x="132.0" y="82" font-size="12.5" fill="#939E9F" text-anchor="end">page tag blobs: 1, 2, 3 ...</text>
 <line x1="206.0" y1="76.0" x2="126.0" y2="150" stroke="#939E9F" stroke-width="1"/>
 <circle cx="206.0" cy="76.0" r="2.5" fill="#939E9F"/>
-<text x="132.0" y="154" font-size="12.5" fill="#939E9F" text-anchor="end">bit 7 of byte 0</text>
+<text x="132.0" y="154" font-size="12.5" fill="#939E9F" text-anchor="end">byte 0, bit 7 (MSB)</text>
 <line x1="598.0" y1="468.0" x2="126.0" y2="470" stroke="#939E9F" stroke-width="1"/>
 <circle cx="598.0" cy="468.0" r="2.5" fill="#939E9F"/>
-<text x="132.0" y="474" font-size="12.5" fill="#939E9F" text-anchor="end">bit 0 of byte 7</text>
+<text x="132.0" y="474" font-size="12.5" fill="#939E9F" text-anchor="end">byte 7, bit 0 (LSB)</text>
 <text x="150.0" y="566.0" font-size="13" fill="#E4E9E7" font-weight="600">one page = 8 bytes</text>
 <text x="150.0" y="586.0" font-size="12" fill="#939E9F">12 px cells on a 14 px pitch, inset 8 px, MSB leftmost</text>
 <text x="150.0" y="606.0" font-size="12" fill="#939E9F">a LIT cell is a 1 bit</text>
