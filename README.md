@@ -15,12 +15,23 @@ here came off a 128x128 OLED, one 8-byte page at a time, photographed with a
 phone. The bytes happen to draw a skull.
 
 > [!IMPORTANT]
-> **Private repository. Keep it that way.**
-> The method here is a live exploit against a badge people are still playing a
-> game with. It was disclosed privately to the badge author, who confirmed
-> receipt, under a commitment not to publish. Do not make this repo public, do
-> not post the method, and do not post any value you recover, until the author
-> says the embargo is lifted.
+> **Published with the badge author's permission, August 2026.**
+> Everything here was disclosed privately to Andrew "bunnie" Huang first and held
+> under embargo until he lifted it. He has confirmed the findings and has fixes in
+> progress. Two things are still withheld and are not in this repository: the value
+> of THE_FLAG_1, which is a game prize and someone else's to find, and anything
+> that would spoil a puzzle rather than explain a technique.
+>
+> The exchange key **Ko** is published, separately, at
+> [nastea1/dc34-gamete](https://github.com/nastea1/dc34-gamete) along with a browser
+> tool that uses it. That release was cleared at the same time.
+
+> [!NOTE]
+> **This describes real defects in shipped hardware.** One of them, the RRAM
+> instruction-fetch behaviour in [docs/05-fetch-acl-bypass.md](docs/05-fetch-acl-bypass.md),
+> is in silicon and cannot be fixed in firmware on badges already in the field.
+> Read it as an explanation of how the part behaves, not as an invitation to go
+> after anyone else's device.
 
 > [!WARNING]
 > **Never enter developer mode.** It is a one-way door. It erases the badge's
@@ -29,6 +40,13 @@ phone. The bytes happen to draw a skull.
 > is a different and safe state. Verify which one you are in before typing
 > anything: update mode enumerates as `Baochip_1x`, a normal boot as
 > `Baosec_lite`.
+
+## Related
+
+The light gene exchange itself, the key it uses, and a browser tool that mints a
+valid gamete from a photo: [nastea1/dc34-gamete](https://github.com/nastea1/dc34-gamete).
+That repository documents the protocol and publishes Ko. This one explains how the
+badge's secrets were recovered in the first place.
 
 ## What is here
 
