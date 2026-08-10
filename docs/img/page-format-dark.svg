@@ -85,5 +85,5 @@
 <text x="132.0" y="474" font-size="12.5" fill="#939E9F" text-anchor="end">bit 0 of byte 7</text>
 <text x="150.0" y="566.0" font-size="13" fill="#E4E9E7" font-weight="600">one page = 8 bytes</text>
 <text x="150.0" y="586.0" font-size="12" fill="#939E9F">12 px cells on a 14 px pitch, inset 8 px, MSB leftmost</text>
-<text x="150.0" y="606.0" font-size="12" fill="#939E9F">panel polarity is inverted: a 0 bit is LIT</text>
+<text x="150.0" y="606.0" font-size="12" fill="#939E9F">a LIT cell is a 1 bit</text>
 </svg>

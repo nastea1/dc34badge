@@ -11,7 +11,8 @@ pub const CLKTOP_HZ: u32 = 700_000_000;
 /// Plus a 2 px lit border (so a decoder can find the corners in a handheld photo) and
 /// `tag` blobs in the top margin (so you know which page you photographed).
 ///
-/// Polarity is inverted on this panel: clear() fills 0xFFFF_FFFF, so a 0 bit is LIT.
+/// Polarity: clear() fills 0xFFFF_FFFF, so a 0 in the FRAMEBUFFER is lit. lit() clears
+/// bits, so a 1 in the DATA ends up as a lit cell. The two inversions cancel.
 pub fn draw_page8(fb: &mut [u32], eight: &[u8], tag: usize) {
     for w in fb.iter_mut() {
         *w = 0xFFFF_FFFF;
