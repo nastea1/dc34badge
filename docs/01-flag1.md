@@ -53,7 +53,7 @@ Two facts make it work. You can write those bytes, because boot1's `uf2` command
 performs no check at write time. And you only need to write four of them, because
 the 32-byte read-modify-write leaves the signature bytes beside them untouched.
 
-## The part that stumped us for a day
+## The part that stumped me for a day
 
 Machine mode is total control, so you would expect to read slot 260 and be done.
 You cannot. The guard does not care how privileged you are. It cares which
@@ -62,8 +62,8 @@ You cannot. The guard does not care how privileged you are. It cares which
 `boot1/src/secboot.rs:17` says `protect()` inverts the mm sense, so "you must
 enter a virtual memory **user** state to access sealed keys."
 
-We read "user" as "not machine mode" and tested S-mode exhaustively. It returned
-zeros every time, and we concluded the protection had held. In RISC-V, S-mode is
+I read "user" as "not machine mode" and tested S-mode exhaustively. It returned
+zeros every time, and I concluded the protection had held. In RISC-V, S-mode is
 *supervisor*. "User" means **U-mode** specifically, and it has to be U-mode at
 **ASID 3**, because that is the identity the badge's own keystore service runs
 under.
@@ -179,7 +179,7 @@ If page 1's CRC is `190a55ad`, the flag read back as all zeros and the keystore
 denied you. Almost always that means S-mode instead of U-mode.
 
 Set `CONTROL_PAGE2` in `tools/decode.py` to your own badge's value first.
-It is unique per badge, so there is no constant we can ship. Without it, the
+It is unique per badge, so there is no constant I can ship. Without it, the
 decoder still runs but cannot tell you when a photo set is untrustworthy, which
 is the entire point of a control.
 

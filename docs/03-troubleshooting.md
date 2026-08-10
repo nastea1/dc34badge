@@ -30,7 +30,7 @@ defence is a known-value control read in the same breath, every run.
 **A control must be in the same permission class as your claim.** The UUID slot is
 `PartitionAccess::Open`, which `coreuser.rs` turns into "readable by every
 coreuser id". Passing it proves your user-mode context exists. It proves nothing
-whatsoever about `Fw0` slots. We validated against it, generalised, and were
+whatsoever about `Fw0` slots. I validated against it, generalised, and was
 wrong for a day. If your control is easier to satisfy than your claim, it is not
 a control.
 

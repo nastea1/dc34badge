@@ -112,7 +112,7 @@ tools/
 docs/
   01-flag1.md         full walkthrough
   02-ko.md            full walkthrough
-  03-troubleshooting.md   everything that cost us a boot cycle
+  03-troubleshooting.md   everything that cost me a boot cycle
   flag1.html, ko.html     the same two walkthroughs, styled
 ```
 
