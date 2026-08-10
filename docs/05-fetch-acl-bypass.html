@@ -387,14 +387,17 @@ fn panic(_i: &amp;PanicInfo) -&gt; ! {
 }
 
 const CLKTOP_HZ: u32 = 700_000_000;
-const IFR_BASE: usize = 0x6040_0000;
+const IFR_BASE: usize = 0x6040_01A0; // the public key block, already published in
+                                     // bao1x-boot/blobs/pubkey-block-ifr-0x1a0.bin.
+                                     // Deliberately not a sweep from offset 0.
 const PT_ROOT: usize = 0x6100_0000; // Sv32 root table
 const PT_L0: usize = 0x6100_1000; // level-0 table for the swept region
 const PT_L0B: usize = 0x6100_2000; // level-0 table for our own code page
 // axi_xadr = haddr[21:10] is TWELVE bits (rrc.sv:654,:871), so the info aperture
 // is 4096 xadr pages x 32 rows x 32 bytes = 4 MiB, from 0x6040_0000 to 0x607F_FFFF.
 // Firmware&#x27;s IFR_LEN = 0x400 is xadr 0 alone: one page in four thousand.
-const SWEEP_LEN: usize = 0x8000; // 32 KiB = the 1024 rows that returned content
+// This example reads one known block rather than enumerating the aperture.
+const SWEEP_LEN: usize = 0x200; // enough to cover the key block and prove the read
 const NROWS: u32 = (SWEEP_LEN as u32) / 32;
 const NPROBE: u32 = 1 + (SWEEP_LEN as u32) / 2; // 0 = control, then EVERY halfword
 
