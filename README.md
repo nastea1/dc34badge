@@ -21,6 +21,7 @@ phone. The bytes happen to draw a skull.
 > progress. Two things are still withheld and are not in this repository: the value
 > of THE_FLAG_1, which is a game prize and someone else's to find, and anything
 > that would spoil a puzzle rather than explain a technique.
+> FLAG_2 was also found. The boot loader exploit has been closed on current firmware.
 >
 > The exchange key **Ko** is published, separately, at
 > [nastea1/dc34-gamete](https://github.com/nastea1/dc34-gamete) along with a browser
